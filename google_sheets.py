@@ -128,6 +128,47 @@ class GoogleSheetsManager:
             logger.error(f"Error getting visit count: {str(e)}")
             return 0
     
+    def update_daily_summary(self, date: str, hours_worked: float) -> Dict[str, Any]:
+        """Update Daily Summary tab with hours worked for a specific date"""
+        try:
+            if not self.client:
+                raise Exception("Google Sheets not initialized")
+            
+            # Open the Daily Summary worksheet
+            spreadsheet = self.client.open_by_key(self.sheet_id)
+            daily_summary = spreadsheet.worksheet("Daily Summary")
+            
+            # Get all existing data
+            all_values = daily_summary.get_all_values()
+            
+            # Find the row with the matching date
+            date_row_index = None
+            for i, row in enumerate(all_values):
+                if row and len(row) > 0 and row[0] == date:
+                    date_row_index = i + 1  # Google Sheets is 1-indexed
+                    break
+            
+            if date_row_index:
+                # Update existing row
+                daily_summary.update_cell(date_row_index, 2, hours_worked)  # Column B (index 2)
+                logger.info(f"Updated existing row {date_row_index} for date {date} with {hours_worked} hours")
+            else:
+                # Add new row
+                new_row = [date, hours_worked, "", "", "", "", ""]  # Add empty cells for other columns
+                daily_summary.append_row(new_row)
+                logger.info(f"Added new row for date {date} with {hours_worked} hours")
+            
+            return {
+                "success": True,
+                "message": f"Successfully updated Daily Summary for {date} with {hours_worked} hours",
+                "date": date,
+                "hours": hours_worked
+            }
+            
+        except Exception as e:
+            logger.error(f"Error updating Daily Summary: {str(e)}")
+            raise Exception(f"Failed to update Daily Summary: {str(e)}")
+    
     def test_connection(self) -> bool:
         """Test the Google Sheets connection"""
         try:

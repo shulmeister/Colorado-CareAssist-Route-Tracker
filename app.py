@@ -40,7 +40,7 @@ async def read_root(request: Request):
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    """Upload and parse PDF file"""
+    """Upload and parse PDF file (MyWay route or Time tracking)"""
     try:
         # Validate file type
         if not file.filename.lower().endswith('.pdf'):
@@ -51,19 +51,35 @@ async def upload_file(file: UploadFile = File(...)):
         
         # Parse PDF
         logger.info(f"Parsing PDF: {file.filename}")
-        visits = pdf_parser.parse_pdf(content)
+        result = pdf_parser.parse_pdf(content)
         
-        if not visits:
-            raise HTTPException(status_code=400, detail="No visits found in PDF")
+        if not result.get("success", False):
+            error_msg = result.get("error", "Failed to parse PDF")
+            raise HTTPException(status_code=400, detail=error_msg)
         
-        logger.info(f"Successfully parsed {len(visits)} visits")
-        
-        return JSONResponse({
-            "success": True,
-            "filename": file.filename,
-            "visits": visits,
-            "count": len(visits)
-        })
+        # Return appropriate response based on PDF type
+        if result["type"] == "time_tracking":
+            logger.info(f"Successfully parsed time tracking data: {result['date']} - {result['total_hours']} hours")
+            return JSONResponse({
+                "success": True,
+                "filename": file.filename,
+                "type": "time_tracking",
+                "date": result["date"],
+                "total_hours": result["total_hours"]
+            })
+        else:
+            visits = result["visits"]
+            if not visits:
+                raise HTTPException(status_code=400, detail="No visits found in PDF")
+            
+            logger.info(f"Successfully parsed {len(visits)} visits")
+            return JSONResponse({
+                "success": True,
+                "filename": file.filename,
+                "type": "myway_route",
+                "visits": visits,
+                "count": len(visits)
+            })
         
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}")
@@ -71,30 +87,54 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.post("/append-to-sheet")
 async def append_to_sheet(request: Request):
-    """Append visits to Google Sheet"""
+    """Append visits to Google Sheet or update Daily Summary"""
     try:
         if not sheets_manager:
             raise HTTPException(status_code=500, detail="Google Sheets not configured. Please check environment variables.")
         
         data = await request.json()
-        visits = data.get("visits", [])
+        data_type = data.get("type", "myway_route")
         
-        if not visits:
-            raise HTTPException(status_code=400, detail="No visits provided")
+        if data_type == "time_tracking":
+            # Handle time tracking data
+            date = data.get("date")
+            total_hours = data.get("total_hours")
+            
+            if not date or total_hours is None:
+                raise HTTPException(status_code=400, detail="Date and total_hours are required for time tracking")
+            
+            # Update Daily Summary
+            result = sheets_manager.update_daily_summary(date, total_hours)
+            
+            logger.info(f"Successfully updated Daily Summary for {date} with {total_hours} hours")
+            
+            return JSONResponse({
+                "success": True,
+                "message": f"Successfully updated Daily Summary for {date} with {total_hours} hours",
+                "date": date,
+                "hours": total_hours
+            })
         
-        # Append to Google Sheet
-        result = sheets_manager.append_visits(visits)
-        
-        logger.info(f"Successfully appended {len(visits)} visits to Google Sheet")
-        
-        return JSONResponse({
-            "success": True,
-            "message": f"Successfully added {len(visits)} visits to the tracker",
-            "appended_count": len(visits)
-        })
+        else:
+            # Handle MyWay route data
+            visits = data.get("visits", [])
+            
+            if not visits:
+                raise HTTPException(status_code=400, detail="No visits provided")
+            
+            # Append to Google Sheet
+            result = sheets_manager.append_visits(visits)
+            
+            logger.info(f"Successfully appended {len(visits)} visits to Google Sheet")
+            
+            return JSONResponse({
+                "success": True,
+                "message": f"Successfully added {len(visits)} visits to the tracker",
+                "appended_count": len(visits)
+            })
         
     except Exception as e:
-        logger.error(f"Error appending to sheet: {str(e)}")
+        logger.error(f"Error updating sheet: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error updating sheet: {str(e)}")
 
 @app.get("/health")

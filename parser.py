@@ -1,13 +1,14 @@
 import pdfplumber
 import re
 import io
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 class PDFParser:
-    """Parse MyWay route PDFs to extract visit information"""
+    """Parse MyWay route PDFs and Time tracking PDFs to extract visit information or hours worked"""
     
     def __init__(self):
         # Known healthcare facilities in Colorado Springs area
@@ -46,8 +47,127 @@ class PDFParser:
             r'\d+\s+[A-Za-z\s]+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Way|Ln|Lane|Ct|Court|Pl|Place),\s*CO'
         ]
     
-    def parse_pdf(self, pdf_content: bytes) -> List[Dict[str, Any]]:
-        """Parse PDF content and extract visit information"""
+    def detect_pdf_type(self, pdf_content: bytes) -> str:
+        """Detect if PDF is a MyWay route or Time tracking document"""
+        try:
+            with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+                # Get text from first few pages
+                text = ""
+                for page_num, page in enumerate(pdf.pages[:3]):  # Check first 3 pages
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text.lower()
+                
+                # Look for time tracking indicators
+                time_indicators = [
+                    "time tracking", "hours worked", "daily hours", "total hours",
+                    "clock in", "clock out", "break", "lunch", "start time", "end time",
+                    "time sheet", "timesheet", "work log", "daily log"
+                ]
+                
+                # Look for MyWay route indicators
+                route_indicators = [
+                    "myway", "route", "stop", "visits", "delivery", "pickup",
+                    "address", "location", "business", "facility"
+                ]
+                
+                time_score = sum(1 for indicator in time_indicators if indicator in text)
+                route_score = sum(1 for indicator in route_indicators if indicator in text)
+                
+                logger.info(f"PDF type detection - Time indicators: {time_score}, Route indicators: {route_score}")
+                
+                if time_score > route_score and time_score > 0:
+                    return "time_tracking"
+                else:
+                    return "myway_route"
+                    
+        except Exception as e:
+            logger.error(f"Error detecting PDF type: {str(e)}")
+            return "myway_route"  # Default to route parsing
+    
+    def parse_pdf(self, pdf_content: bytes) -> Dict[str, Any]:
+        """Parse PDF content and return appropriate data based on PDF type"""
+        pdf_type = self.detect_pdf_type(pdf_content)
+        
+        if pdf_type == "time_tracking":
+            return self.parse_time_tracking_pdf(pdf_content)
+        else:
+            return self.parse_myway_route_pdf(pdf_content)
+    
+    def parse_time_tracking_pdf(self, pdf_content: bytes) -> Dict[str, Any]:
+        """Parse time tracking PDF to extract daily hours worked"""
+        try:
+            with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+                
+                # Extract date and total hours
+                date, total_hours = self._extract_time_data(text)
+                
+                logger.info(f"Extracted time data - Date: {date}, Hours: {total_hours}")
+                
+                return {
+                    "type": "time_tracking",
+                    "date": date,
+                    "total_hours": total_hours,
+                    "success": True
+                }
+                
+        except Exception as e:
+            logger.error(f"Error parsing time tracking PDF: {str(e)}")
+            return {
+                "type": "time_tracking",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _extract_time_data(self, text: str) -> Tuple[Optional[str], Optional[float]]:
+        """Extract date and total hours from time tracking text"""
+        date = None
+        total_hours = None
+        
+        lines = text.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            
+            # Look for date patterns (MM/DD/YYYY, MM-DD-YYYY, etc.)
+            date_patterns = [
+                r'(\d{1,2}[/-]\d{1,2}[/-]\d{4})',
+                r'(\d{4}[/-]\d{1,2}[/-]\d{1,2})',
+                r'(monday|tuesday|wednesday|thursday|friday|saturday|sunday)',
+            ]
+            
+            for pattern in date_patterns:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match and not date:
+                    date = match.group(1)
+                    break
+            
+            # Look for total hours patterns
+            hours_patterns = [
+                r'total[:\s]+(\d+\.?\d*)\s*hours?',
+                r'hours?[:\s]+(\d+\.?\d*)',
+                r'total[:\s]+(\d+\.?\d*)',
+                r'(\d+\.?\d*)\s*hours?',
+            ]
+            
+            for pattern in hours_patterns:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match and not total_hours:
+                    try:
+                        total_hours = float(match.group(1))
+                        break
+                    except ValueError:
+                        continue
+        
+        return date, total_hours
+    
+    def parse_myway_route_pdf(self, pdf_content: bytes) -> Dict[str, Any]:
+        """Parse MyWay route PDF content and extract visit information"""
         try:
             visits = []
             
@@ -61,12 +181,22 @@ class PDFParser:
             # Clean and validate visits
             cleaned_visits = self._clean_visits(visits)
             
-            logger.info(f"Extracted {len(cleaned_visits)} visits from PDF")
-            return cleaned_visits
+            logger.info(f"Extracted {len(cleaned_visits)} visits from MyWay route PDF")
+            
+            return {
+                "type": "myway_route",
+                "visits": cleaned_visits,
+                "count": len(cleaned_visits),
+                "success": True
+            }
             
         except Exception as e:
-            logger.error(f"Error parsing PDF: {str(e)}")
-            raise Exception(f"Failed to parse PDF: {str(e)}")
+            logger.error(f"Error parsing MyWay route PDF: {str(e)}")
+            return {
+                "type": "myway_route",
+                "success": False,
+                "error": str(e)
+            }
     
     def _extract_visits_from_text(self, text: str, page_num: int) -> List[Dict[str, Any]]:
         """Extract visit information from page text"""

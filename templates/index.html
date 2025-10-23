@@ -333,8 +333,8 @@
 
             <div class="results-section" id="resultsSection">
                 <div class="results-header">
-                    <h3 class="results-title">Extracted Visits</h3>
-                    <button class="append-btn" id="appendBtn">Append to Tracker</button>
+                    <h3 class="results-title" id="resultsTitle">Extracted Data</h3>
+                    <button class="append-btn" id="appendBtn">Process Data</button>
                 </div>
 
                 <div class="stats" id="statsSection">
@@ -359,8 +359,9 @@
     </div>
 
     <script>
-        let currentVisits = [];
+        let currentData = null;
         let currentFilename = '';
+        let currentDataType = null;
 
         // DOM elements
         const fileInput = document.getElementById('fileInput');
@@ -375,6 +376,7 @@
         const tableContainer = document.getElementById('tableContainer');
         const totalVisitsEl = document.getElementById('totalVisits');
         const uniqueBusinessesEl = document.getElementById('uniqueBusinesses');
+        const resultsTitle = document.getElementById('resultsTitle');
 
         // Event listeners
         fileInput.addEventListener('change', handleFileSelect);
@@ -436,9 +438,15 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    currentVisits = result.visits;
+                    currentData = result;
+                    currentDataType = result.type;
                     displayResults(result);
-                    showSuccess(`Successfully processed ${result.count} visits from ${result.filename}`);
+                    
+                    if (result.type === 'time_tracking') {
+                        showSuccess(`Successfully processed time tracking data: ${result.date} - ${result.total_hours} hours`);
+                    } else {
+                        showSuccess(`Successfully processed ${result.count} visits from ${result.filename}`);
+                    }
                 } else {
                     showError(result.detail || 'Failed to process PDF');
                 }
@@ -450,6 +458,55 @@
         }
 
         function displayResults(result) {
+            if (result.type === 'time_tracking') {
+                resultsTitle.textContent = 'Time Tracking Data';
+                appendBtn.textContent = 'Update Daily Summary';
+                displayTimeTrackingResults(result);
+            } else {
+                resultsTitle.textContent = 'Extracted Visits';
+                appendBtn.textContent = 'Append to Tracker';
+                displayVisitsResults(result);
+            }
+            resultsSection.style.display = 'block';
+        }
+
+        function displayTimeTrackingResults(result) {
+            // Update stats for time tracking
+            totalVisitsEl.textContent = '1';
+            uniqueBusinessesEl.textContent = 'Time Entry';
+
+            // Create table for time tracking
+            const table = document.createElement('table');
+            table.className = 'visits-table';
+            
+            // Header
+            const headerRow = table.insertRow();
+            ['Date', 'Hours Worked', 'Status'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+
+            // Data row
+            const row = table.insertRow();
+            
+            const dateCell = row.insertCell();
+            dateCell.className = 'business-name';
+            dateCell.textContent = result.date || 'Not detected';
+            
+            const hoursCell = row.insertCell();
+            hoursCell.className = 'stop-number';
+            hoursCell.textContent = result.total_hours || 'Not detected';
+            
+            const statusCell = row.insertCell();
+            statusCell.className = 'notes';
+            statusCell.textContent = 'Ready to update Daily Summary';
+
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+        }
+
+        function displayVisitsResults(result) {
             const visits = result.visits;
             
             // Update stats
@@ -497,17 +554,16 @@
 
             tableContainer.innerHTML = '';
             tableContainer.appendChild(table);
-            resultsSection.style.display = 'block';
         }
 
         async function appendToSheet() {
-            if (currentVisits.length === 0) {
-                showError('No visits to append');
+            if (!currentData) {
+                showError('No data to process');
                 return;
             }
 
             appendBtn.disabled = true;
-            appendBtn.textContent = 'Appending...';
+            appendBtn.textContent = currentDataType === 'time_tracking' ? 'Updating...' : 'Appending...';
 
             try {
                 const response = await fetch('/append-to-sheet', {
@@ -515,7 +571,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ visits: currentVisits })
+                    body: JSON.stringify(currentData)
                 });
 
                 const result = await response.json();
@@ -525,14 +581,14 @@
                     appendBtn.textContent = 'Successfully Added!';
                     appendBtn.style.background = '#27ae60';
                 } else {
-                    showError(result.detail || 'Failed to append to sheet');
+                    showError(result.detail || 'Failed to update sheet');
                 }
             } catch (error) {
-                showError('Error appending to sheet: ' + error.message);
+                showError('Error updating sheet: ' + error.message);
             } finally {
                 appendBtn.disabled = false;
-                if (appendBtn.textContent === 'Appending...') {
-                    appendBtn.textContent = 'Append to Tracker';
+                if (appendBtn.textContent === 'Updating...' || appendBtn.textContent === 'Appending...') {
+                    appendBtn.textContent = currentDataType === 'time_tracking' ? 'Update Daily Summary' : 'Append to Tracker';
                 }
             }
         }
