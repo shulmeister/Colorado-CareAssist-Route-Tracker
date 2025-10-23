@@ -1,5 +1,6 @@
 import pdfplumber
 import re
+import io
 from typing import List, Dict, Any, Optional
 import logging
 
@@ -253,5 +254,3 @@ class PDFParser:
         
         return cleaned
 
-# Import io for BytesIO
-import io
