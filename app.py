@@ -17,7 +17,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Colorado CareAssist Route Tracker", version="1.0.0")
+app = FastAPI(title="Colorado CareAssist Route & Time Tracker", version="1.0.0")
 
 # Mount static files and templates
 templates = Jinja2Templates(directory="templates")
@@ -140,7 +140,7 @@ async def append_to_sheet(request: Request):
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "Colorado CareAssist Route Tracker"}
+    return {"status": "healthy", "service": "Colorado CareAssist Route & Time Tracker"}
 
 if __name__ == "__main__":
     import uvicorn
