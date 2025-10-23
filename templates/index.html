@@ -377,7 +377,6 @@
         const uniqueBusinessesEl = document.getElementById('uniqueBusinesses');
 
         // Event listeners
-        uploadBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileSelect);
         appendBtn.addEventListener('click', appendToSheet);
 
@@ -565,10 +564,13 @@
             errorMessage.style.display = 'none';
         }
 
-        // Reset upload button after successful processing
-        uploadBtn.addEventListener('click', () => {
+        // Upload button click handler
+        uploadBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             if (uploadBtn.textContent === 'Choose PDF File') {
                 fileInput.click();
+            } else if (uploadBtn.textContent === 'Process PDF') {
+                processFile();
             }
         });
     </script>

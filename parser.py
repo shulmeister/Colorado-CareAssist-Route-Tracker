@@ -183,20 +183,67 @@ class PDFParser:
                 if keyword in note_lower:
                     return facility_name
         
-        # Heuristic: if address contains common healthcare terms
-        healthcare_terms = ["hospital", "medical", "health", "clinic", "center", "care", "hospice", "rehab"]
-        for term in healthcare_terms:
-            if term in text_to_search:
-                # Try to extract a meaningful name from the address
-                address_parts = address.split()
-                if len(address_parts) > 2:
-                    # Look for capitalized words that might be facility names
-                    potential_names = [part for part in address_parts if part[0].isupper() and len(part) > 2]
-                    if potential_names:
-                        return " ".join(potential_names[:2]) + " Healthcare Facility"
+        # Enhanced business name extraction from address
+        business_name = self._extract_business_name_from_address(address, notes)
+        if business_name and business_name != "Healthcare Facility":
+            return business_name
         
         # Default fallback
         return "Healthcare Facility"
+    
+    def _extract_business_name_from_address(self, address: str, notes: List[str]) -> str:
+        """Extract business name from address using enhanced logic"""
+        # Common patterns for healthcare facilities
+        healthcare_patterns = [
+            r'(\w+(?:\s+\w+)*)\s+(?:Hospital|Medical Center|Health Center|Healthcare Center)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Care Center|Rehabilitation Center|Rehab Center)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Assisted Living|Senior Living|Memory Care)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Hospice|Palliative Care)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Clinic|Medical Clinic|Health Clinic)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Emergency Room|ER|Emergency Department)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Recovery|Treatment Center)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Internal Medicine|Family Medicine)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Post Acute|Skilled Nursing)',
+            r'(\w+(?:\s+\w+)*)\s+(?:Health Care|Healthcare)',
+        ]
+        
+        # Try to match patterns in address
+        for pattern in healthcare_patterns:
+            match = re.search(pattern, address, re.IGNORECASE)
+            if match:
+                name_part = match.group(1).strip()
+                if len(name_part) > 2 and not name_part.lower() in ['the', 'at', 'of', 'and']:
+                    return name_part
+        
+        # Look for capitalized words that might be business names
+        # Split address and look for meaningful capitalized sequences
+        address_parts = address.split(',')[0].split()  # Take only street address part
+        
+        # Find sequences of capitalized words
+        capitalized_words = []
+        for part in address_parts:
+            if part[0].isupper() and len(part) > 2 and not part.lower() in ['st', 'street', 'ave', 'avenue', 'blvd', 'boulevard', 'rd', 'road', 'dr', 'drive', 'ln', 'lane', 'ct', 'court', 'pl', 'place', 'way']:
+                capitalized_words.append(part)
+            elif capitalized_words:  # Stop if we hit a non-capitalized word after finding some
+                break
+        
+        if capitalized_words:
+            # Join capitalized words to form business name
+            business_name = " ".join(capitalized_words)
+            if len(business_name) > 3:
+                return business_name
+        
+        # Try to extract from notes if available
+        for note in notes:
+            note_lower = note.lower()
+            if any(term in note_lower for term in ['hospital', 'medical', 'health', 'clinic', 'center', 'care']):
+                # Look for capitalized words in notes
+                note_words = note.split()
+                cap_words = [word for word in note_words if word[0].isupper() and len(word) > 2]
+                if cap_words:
+                    return " ".join(cap_words[:3])  # Take first 3 capitalized words
+        
+        return None
     
     def _clean_address(self, address: str) -> str:
         """Clean and normalize address"""
