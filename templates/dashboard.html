@@ -703,6 +703,14 @@
             }
         }
 
+        // Suppress browser extension errors
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('pageMenu')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
         // Navigation functions
         function toggleNav() {
             const navMenu = document.getElementById('navMenu');
