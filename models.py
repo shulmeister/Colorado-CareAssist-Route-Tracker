@@ -82,6 +82,78 @@ class Contact(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
+class FinancialEntry(Base):
+    """Financial tracking entries from daily summary data"""
+    __tablename__ = "financial_entries"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime, nullable=False)
+    hours_worked = Column(Float, nullable=False)
+    labor_cost = Column(Float, nullable=False)  # Hour Total ($) - $20/hour
+    miles_driven = Column(Float, nullable=True)
+    mileage_cost = Column(Float, nullable=True)  # Mileage Cost ($) - $0.70/mile
+    materials_cost = Column(Float, nullable=True)  # Gas/Treats/Materials ($) - cookies, gas, etc
+    total_daily_cost = Column(Float, nullable=False)  # Total Daily Cost ($)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "date": self.date.isoformat() if self.date else None,
+            "hours_worked": self.hours_worked,
+            "labor_cost": self.labor_cost,
+            "miles_driven": self.miles_driven,
+            "mileage_cost": self.mileage_cost,
+            "materials_cost": self.materials_cost,
+            "total_daily_cost": self.total_daily_cost,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+class SalesBonus(Base):
+    """Sales bonuses from closed sales"""
+    __tablename__ = "sales_bonuses"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    client_name = Column(String(255), nullable=False)
+    bonus_amount = Column(Float, nullable=False)  # $250 or $350
+    commission_paid = Column(Boolean, default=False)
+    start_date = Column(DateTime, nullable=True)
+    wellsky_status = Column(String(100), nullable=True)
+    status = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_name": self.client_name,
+            "bonus_amount": self.bonus_amount,
+            "commission_paid": self.commission_paid,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "wellsky_status": self.wellsky_status,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+class ActivityNote(Base):
+    """Activity notes for tracking daily activities and observations"""
+    __tablename__ = "activity_notes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime, nullable=False)
+    notes = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "date": self.date.isoformat() if self.date else None,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
 class AnalyticsCache(Base):
     """Cached analytics data for performance"""
     __tablename__ = "analytics_cache"
