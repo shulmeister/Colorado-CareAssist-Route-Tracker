@@ -777,9 +777,12 @@
                     document.getElementById('bonusPerVisit').textContent = '$0.00';
                 }
 
-                // Load charts
-                await loadCharts();
-                await loadRecentActivity();
+                // Wait a bit for Chart.js to load, then load charts
+                setTimeout(async () => {
+                    await loadCharts();
+                    await loadRecentActivity();
+                }, 100);
+
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
                 // Set default values on error
@@ -794,12 +797,20 @@
 
         async function loadCharts() {
             try {
+                // Check if Chart.js is loaded
+                if (typeof Chart === 'undefined') {
+                    console.warn('Chart.js not loaded, skipping chart creation');
+                    return;
+                }
+
                 // Revenue vs Costs Chart
                 const revenueResponse = await fetch('/api/dashboard/revenue-by-month');
                 const revenueData = await revenueResponse.json();
 
                 const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-                if (window.revenueChart) window.revenueChart.destroy();
+                if (window.revenueChart && typeof window.revenueChart.destroy === 'function') {
+                    window.revenueChart.destroy();
+                }
                 window.revenueChart = new Chart(revenueCtx, {
                     type: 'bar',
                     data: {
@@ -846,7 +857,7 @@
                 const visitsData = await visitsResponse.json();
 
                 const visitsCtx = document.getElementById('visitsChart').getContext('2d');
-                if (visitsChart) visitsChart.destroy();
+                if (visitsChart && typeof visitsChart.destroy === 'function') visitsChart.destroy();
                 visitsChart = new Chart(visitsCtx, {
                     type: 'line',
                     data: {
@@ -874,7 +885,7 @@
                 const facilitiesData = await facilitiesResponse.json();
 
                 const facilitiesCtx = document.getElementById('topFacilitiesChart').getContext('2d');
-                if (topFacilitiesChart) topFacilitiesChart.destroy();
+                if (topFacilitiesChart && typeof topFacilitiesChart.destroy === 'function') topFacilitiesChart.destroy();
                 topFacilitiesChart = new Chart(facilitiesCtx, {
                     type: 'doughnut',
                     data: {
