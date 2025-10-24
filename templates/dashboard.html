@@ -807,7 +807,9 @@
         async function loadDashboardData() {
             try {
                 console.log('Loading dashboard data...');
-                const response = await fetch('/api/dashboard/summary');
+                const response = await fetch('/api/dashboard/summary', {
+                    credentials: 'include'
+                });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -861,7 +863,9 @@
                 }
 
                 // Load costs chart
-                const costsResponse = await fetch('/api/dashboard/costs-by-month');
+                const costsResponse = await fetch('/api/dashboard/costs-by-month', {
+                    credentials: 'include'
+                });
                 const costsData = await costsResponse.json();
                 
                 const costsCtx = document.getElementById('costsChart').getContext('2d');
@@ -918,7 +922,9 @@
                 });
 
                 // Load facilities chart
-                const facilitiesResponse = await fetch('/api/dashboard/top-facilities');
+                const facilitiesResponse = await fetch('/api/dashboard/top-facilities', {
+                    credentials: 'include'
+                });
                 const facilitiesData = await facilitiesResponse.json();
                 
                 const facilitiesCtx = document.getElementById('facilitiesChart').getContext('2d');
@@ -965,7 +971,9 @@
         // Recent activity loading
         async function loadRecentActivity() {
             try {
-                const response = await fetch('/api/dashboard/recent-activity');
+                const response = await fetch('/api/dashboard/recent-activity', {
+                    credentials: 'include'
+                });
                 const data = await response.json();
 
                 const tbody = document.getElementById('recentActivityList');
@@ -1190,7 +1198,9 @@
         // Load visits data
         async function loadVisitsData() {
             try {
-                const response = await fetch('/api/visits');
+                const response = await fetch('/api/visits', {
+                    credentials: 'include'
+                });
                 const visits = await response.json();
 
                 const tbody = document.getElementById('visitsList');
@@ -1223,7 +1233,9 @@
         // Load sales data
         async function loadSalesData() {
             try {
-                const response = await fetch('/api/sales-bonuses');
+                const response = await fetch('/api/sales-bonuses', {
+                    credentials: 'include'
+                });
                 const sales = await response.json();
 
                 const tbody = document.getElementById('salesList');
