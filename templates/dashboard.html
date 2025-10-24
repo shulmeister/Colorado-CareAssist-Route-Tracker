@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colorado CareAssist Sales Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #7f8c8d;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .upload-tab {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #6c757d;
+        }
+
+        .upload-tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .contact-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .activity-item {
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .activity-type {
+            font-weight: 600;
+            color: #667eea;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .activity-description {
+            margin: 5px 0;
+            color: #2c3e50;
+        }
+
+        .activity-date {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .contact-form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Colorado CareAssist</h1>
+            <p>Sales Dashboard - Track Visits, Hours & Contacts</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="nav-tab" onclick="showTab('upload')">📄 Upload Files</button>
+            <button class="nav-tab" onclick="showTab('contacts')">👥 Contacts</button>
+            <button class="nav-tab" onclick="showTab('analytics')">📈 Analytics</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>Total Visits</h3>
+                    <div class="stat-number" id="totalVisits">-</div>
+                    <div class="stat-label">All Time</div>
+                </div>
+                <div class="card">
+                    <h3>This Month</h3>
+                    <div class="stat-number" id="visitsThisMonth">-</div>
+                    <div class="stat-label">Visits</div>
+                </div>
+                <div class="card">
+                    <h3>Total Hours</h3>
+                    <div class="stat-number" id="totalHours">-</div>
+                    <div class="stat-label">Hours Worked</div>
+                </div>
+                <div class="card">
+                    <h3>This Month</h3>
+                    <div class="stat-number" id="hoursThisMonth">-</div>
+                    <div class="stat-label">Hours</div>
+                </div>
+                <div class="card">
+                    <h3>Contacts</h3>
+                    <div class="stat-number" id="totalContacts">-</div>
+                    <div class="stat-label">Business Cards</div>
+                </div>
+                <div class="card">
+                    <h3>Facilities</h3>
+                    <div class="stat-number" id="uniqueFacilities">-</div>
+                    <div class="stat-label">Unique Locations</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Visits by Month</h3>
+                <canvas id="visitsChart" width="400" height="200"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Hours Worked by Month</h3>
+                <canvas id="hoursChart" width="400" height="200"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Top Facilities</h3>
+                <canvas id="facilitiesChart" width="400" height="200"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Recent Activity</h3>
+                <div id="recentActivity"></div>
+            </div>
+        </div>
+
+        <!-- Upload Tab -->
+        <div id="upload" class="tab-content">
+            <div class="upload-section">
+                <h2>Upload Files</h2>
+                <p>Upload MyWay routes, time tracking PDFs, or business card images</p>
+                
+                <div class="upload-tabs">
+                    <button class="upload-tab active" onclick="showUploadTab('pdf')">📄 PDF Files</button>
+                    <button class="upload-tab" onclick="showUploadTab('image')">🖼️ Business Cards</button>
+                </div>
+
+                <div id="pdfUpload" class="upload-content">
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf">
+                    <button class="upload-btn" id="uploadBtn">Choose PDF File</button>
+                    <div class="file-info" id="fileInfo"></div>
+                </div>
+
+                <div id="imageUpload" class="upload-content" style="display: none;">
+                    <input type="file" id="imageInput" class="file-input" accept="image/*">
+                    <button class="upload-btn" id="imageUploadBtn">Choose Image File</button>
+                    <div class="file-info" id="imageFileInfo"></div>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Processing file...</p>
+                </div>
+
+                <div class="success-message" id="successMessage" style="display: none;"></div>
+                <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+                <div class="results-section" id="resultsSection">
+                    <h3 id="resultsTitle">Results</h3>
+                    <div id="tableContainer"></div>
+                    <button class="save-btn" id="saveBtn" style="display: none;">Save to Database</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts Tab -->
+        <div id="contacts" class="tab-content">
+            <div class="card">
+                <h3>Business Contacts</h3>
+                <p>Manage your scanned business card contacts</p>
+                <div id="contactsList"></div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <div class="card">
+                <h3>Advanced Analytics</h3>
+                <p>Detailed insights and reporting</p>
+                <div id="analyticsContent">
+                    <p>Advanced analytics features coming soon...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentData = null;
+        let currentFilename = '';
+        let currentDataType = null;
+        let visitsChart = null;
+        let hoursChart = null;
+        let facilitiesChart = null;
+
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const imageInput = document.getElementById('imageInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const imageUploadBtn = document.getElementById('imageUploadBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const imageFileInfo = document.getElementById('imageFileInfo');
+        const loading = document.getElementById('loading');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsTitle = document.getElementById('resultsTitle');
+        const tableContainer = document.getElementById('tableContainer');
+        const saveBtn = document.getElementById('saveBtn');
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            initializeCharts();
+            
+            // Set up event listeners
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            imageUploadBtn.addEventListener('click', () => imageInput.click());
+            
+            fileInput.addEventListener('change', handleFileSelect);
+            imageInput.addEventListener('change', handleImageSelect);
+            
+            saveBtn.addEventListener('click', saveToDatabase);
+        });
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked nav tab
+            event.target.classList.add('active');
+            
+            // Load data for specific tabs
+            if (tabName === 'dashboard') {
+                loadDashboardData();
+            } else if (tabName === 'contacts') {
+                loadContacts();
+            }
+        }
+
+        function showUploadTab(type) {
+            document.querySelectorAll('.upload-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.upload-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            event.target.classList.add('active');
+            document.getElementById(type + 'Upload').style.display = 'block';
+        }
+
+        // Dashboard functions
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/dashboard/summary');
+                const data = await response.json();
+                
+                document.getElementById('totalVisits').textContent = data.total_visits || 0;
+                document.getElementById('visitsThisMonth').textContent = data.visits_this_month || 0;
+                document.getElementById('totalHours').textContent = data.total_hours || 0;
+                document.getElementById('hoursThisMonth').textContent = data.hours_this_month || 0;
+                document.getElementById('totalContacts').textContent = data.total_contacts || 0;
+                document.getElementById('uniqueFacilities').textContent = data.unique_facilities || 0;
+                
+                // Load charts data
+                loadVisitsChart();
+                loadHoursChart();
+                loadFacilitiesChart();
+                loadRecentActivity();
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        async function loadVisitsChart() {
+            try {
+                const response = await fetch('/api/dashboard/visits-by-month');
+                const data = await response.json();
+                
+                const ctx = document.getElementById('visitsChart').getContext('2d');
+                
+                if (visitsChart) {
+                    visitsChart.destroy();
+                }
+                
+                visitsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => item.month),
+                        datasets: [{
+                            label: 'Visits',
+                            data: data.map(item => item.count),
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading visits chart:', error);
+            }
+        }
+
+        async function loadHoursChart() {
+            try {
+                const response = await fetch('/api/dashboard/hours-by-month');
+                const data = await response.json();
+                
+                const ctx = document.getElementById('hoursChart').getContext('2d');
+                
+                if (hoursChart) {
+                    hoursChart.destroy();
+                }
+                
+                hoursChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.month),
+                        datasets: [{
+                            label: 'Hours',
+                            data: data.map(item => item.hours),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderColor: '#667eea',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading hours chart:', error);
+            }
+        }
+
+        async function loadFacilitiesChart() {
+            try {
+                const response = await fetch('/api/dashboard/top-facilities');
+                const data = await response.json();
+                
+                const ctx = document.getElementById('facilitiesChart').getContext('2d');
+                
+                if (facilitiesChart) {
+                    facilitiesChart.destroy();
+                }
+                
+                facilitiesChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(item => item.facility),
+                        datasets: [{
+                            data: data.map(item => item.visits),
+                            backgroundColor: [
+                                '#667eea',
+                                '#764ba2',
+                                '#f093fb',
+                                '#f5576c',
+                                '#4facfe',
+                                '#00f2fe'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading facilities chart:', error);
+            }
+        }
+
+        async function loadRecentActivity() {
+            try {
+                const response = await fetch('/api/dashboard/recent-activity');
+                const data = await response.json();
+                
+                const container = document.getElementById('recentActivity');
+                container.innerHTML = '';
+                
+                data.forEach(activity => {
+                    const activityDiv = document.createElement('div');
+                    activityDiv.className = 'activity-item';
+                    activityDiv.innerHTML = `
+                        <div class="activity-type">${activity.type}</div>
+                        <div class="activity-description">${activity.description}</div>
+                        <div class="activity-date">${new Date(activity.date).toLocaleString()}</div>
+                    `;
+                    container.appendChild(activityDiv);
+                });
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+            }
+        }
+
+        function initializeCharts() {
+            // Charts will be initialized when data is loaded
+        }
+
+        // File upload functions
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                fileInfo.innerHTML = `
+                    <strong>Selected:</strong> ${file.name}<br>
+                    <strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                    <strong>Type:</strong> ${file.type}
+                `;
+                fileInfo.style.display = 'block';
+                
+                processFile();
+            }
+        }
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                imageFileInfo.innerHTML = `
+                    <strong>Selected:</strong> ${file.name}<br>
+                    <strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                    <strong>Type:</strong> ${file.type}
+                `;
+                imageFileInfo.style.display = 'block';
+                
+                processImage();
+            }
+        }
+
+        async function processFile() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            showLoading();
+            hideMessages();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentData = result;
+                    currentDataType = result.type;
+                    displayResults(result);
+                    
+                    if (result.type === 'time_tracking') {
+                        showSuccess(`Successfully processed time tracking data: ${result.date} - ${result.total_hours} hours`);
+                    } else {
+                        showSuccess(`Successfully processed ${result.count} visits from ${result.filename}`);
+                    }
+                } else {
+                    showError(result.detail || 'Failed to process PDF');
+                }
+            } catch (error) {
+                showError('Error processing file: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function processImage() {
+            const file = imageInput.files[0];
+            if (!file) return;
+
+            showLoading();
+            hideMessages();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/scan-business-card', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentData = result;
+                    displayContactForm(result.contact);
+                    showSuccess(`Successfully scanned business card: ${result.contact.name || result.contact.company}`);
+                } else {
+                    showError(result.detail || 'Failed to scan business card');
+                }
+            } catch (error) {
+                showError('Error scanning image: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(result) {
+            if (result.type === 'time_tracking') {
+                resultsTitle.textContent = 'Time Tracking Data';
+                saveBtn.textContent = 'Save Time Entry';
+                displayTimeTrackingResults(result);
+            } else {
+                resultsTitle.textContent = 'Extracted Visits';
+                saveBtn.textContent = 'Save Visits';
+                displayVisitsResults(result);
+            }
+            resultsSection.style.display = 'block';
+            saveBtn.style.display = 'block';
+        }
+
+        function displayTimeTrackingResults(result) {
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.style.marginTop = '20px';
+            
+            // Header
+            const headerRow = table.insertRow();
+            ['Date', 'Hours Worked', 'Status'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                th.style.padding = '12px';
+                th.style.backgroundColor = '#f8f9fa';
+                th.style.border = '1px solid #dee2e6';
+                headerRow.appendChild(th);
+            });
+
+            // Data row
+            const row = table.insertRow();
+            
+            const dateCell = row.insertCell();
+            dateCell.textContent = result.date || 'Not detected';
+            dateCell.style.padding = '12px';
+            dateCell.style.border = '1px solid #dee2e6';
+            
+            const hoursCell = row.insertCell();
+            hoursCell.textContent = result.total_hours || 'Not detected';
+            hoursCell.style.padding = '12px';
+            hoursCell.style.border = '1px solid #dee2e6';
+            
+            const statusCell = row.insertCell();
+            statusCell.textContent = 'Ready to save';
+            statusCell.style.padding = '12px';
+            statusCell.style.border = '1px solid #dee2e6';
+
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+        }
+
+        function displayVisitsResults(result) {
+            const visits = result.visits;
+            
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.style.marginTop = '20px';
+            
+            // Header
+            const headerRow = table.insertRow();
+            ['Stop', 'Business Name', 'Location', 'City', 'Notes'].forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                th.style.padding = '12px';
+                th.style.backgroundColor = '#f8f9fa';
+                th.style.border = '1px solid #dee2e6';
+                headerRow.appendChild(th);
+            });
+
+            // Data rows
+            visits.forEach(visit => {
+                const row = table.insertRow();
+                
+                const stopCell = row.insertCell();
+                stopCell.textContent = visit.stop;
+                stopCell.style.padding = '12px';
+                stopCell.style.border = '1px solid #dee2e6';
+                
+                const businessCell = row.insertCell();
+                businessCell.textContent = visit.business_name;
+                businessCell.style.padding = '12px';
+                businessCell.style.border = '1px solid #dee2e6';
+                
+                const locationCell = row.insertCell();
+                locationCell.textContent = visit.location;
+                locationCell.style.padding = '12px';
+                locationCell.style.border = '1px solid #dee2e6';
+                
+                const cityCell = row.insertCell();
+                cityCell.textContent = visit.city;
+                cityCell.style.padding = '12px';
+                cityCell.style.border = '1px solid #dee2e6';
+                
+                const notesCell = row.insertCell();
+                notesCell.textContent = visit.notes;
+                notesCell.style.padding = '12px';
+                notesCell.style.border = '1px solid #dee2e6';
+                notesCell.title = visit.notes;
+            });
+
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(table);
+        }
+
+        function displayContactForm(contact) {
+            resultsTitle.textContent = 'Scanned Contact Information';
+            saveBtn.textContent = 'Save Contact';
+            
+            const form = document.createElement('form');
+            form.className = 'contact-form';
+            
+            form.innerHTML = `
+                <div class="form-group">
+                    <label for="contactName">Name</label>
+                    <input type="text" id="contactName" value="${contact.name || ''}" placeholder="Full name">
+                </div>
+                <div class="form-group">
+                    <label for="contactCompany">Company</label>
+                    <input type="text" id="contactCompany" value="${contact.company || ''}" placeholder="Company name">
+                </div>
+                <div class="form-group">
+                    <label for="contactTitle">Title</label>
+                    <input type="text" id="contactTitle" value="${contact.title || ''}" placeholder="Job title">
+                </div>
+                <div class="form-group">
+                    <label for="contactPhone">Phone</label>
+                    <input type="tel" id="contactPhone" value="${contact.phone || ''}" placeholder="Phone number">
+                </div>
+                <div class="form-group">
+                    <label for="contactEmail">Email</label>
+                    <input type="email" id="contactEmail" value="${contact.email || ''}" placeholder="Email address">
+                </div>
+                <div class="form-group">
+                    <label for="contactWebsite">Website</label>
+                    <input type="url" id="contactWebsite" value="${contact.website || ''}" placeholder="Website URL">
+                </div>
+                <div class="form-group">
+                    <label for="contactAddress">Address</label>
+                    <textarea id="contactAddress" rows="3" placeholder="Full address">${contact.address || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="contactNotes">Notes</label>
+                    <textarea id="contactNotes" rows="3" placeholder="Additional notes">${contact.notes || ''}</textarea>
+                </div>
+            `;
+            
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(form);
+            resultsSection.style.display = 'block';
+            saveBtn.style.display = 'block';
+        }
+
+        async function saveToDatabase() {
+            if (!currentData) {
+                showError('No data to save');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                let response;
+                
+                if (currentDataType === 'contact') {
+                    // Save contact
+                    const contactData = {
+                        name: document.getElementById('contactName').value,
+                        company: document.getElementById('contactCompany').value,
+                        title: document.getElementById('contactTitle').value,
+                        phone: document.getElementById('contactPhone').value,
+                        email: document.getElementById('contactEmail').value,
+                        website: document.getElementById('contactWebsite').value,
+                        address: document.getElementById('contactAddress').value,
+                        notes: document.getElementById('contactNotes').value
+                    };
+                    
+                    response = await fetch('/api/save-contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(contactData)
+                    });
+                } else {
+                    // Save visits or time entries
+                    response = await fetch('/append-to-sheet', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(currentData)
+                    });
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess(result.message);
+                    saveBtn.textContent = 'Saved Successfully!';
+                    saveBtn.style.background = '#28a745';
+                    
+                    // Refresh dashboard data
+                    loadDashboardData();
+                } else {
+                    showError(result.detail || 'Failed to save data');
+                }
+            } catch (error) {
+                showError('Error saving data: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                if (saveBtn.textContent === 'Saving...') {
+                    saveBtn.textContent = currentDataType === 'contact' ? 'Save Contact' : 'Save to Database';
+                }
+            }
+        }
+
+        async function loadContacts() {
+            // TODO: Implement contacts loading
+            document.getElementById('contactsList').innerHTML = '<p>Contacts loading feature coming soon...</p>';
+        }
+
+        // Utility functions
+        function showLoading() {
+            loading.style.display = 'block';
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function hideMessages() {
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
