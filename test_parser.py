@@ -11,6 +11,10 @@ def test_parser():
         "notes": ["ETA 11:19 AM 12m 4.46 mi."]
     }
     
+    # Test street name extraction
+    street_name = parser._extract_street_name(test_data["address"])
+    print(f"Extracted street name: {street_name}")
+    
     result = parser._infer_business_name(test_data["address"], test_data["notes"])
     print(f"Address: {test_data['address']}")
     print(f"Notes: {test_data['notes']}")
