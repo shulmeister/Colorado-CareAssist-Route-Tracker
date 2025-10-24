@@ -47,17 +47,14 @@ def create_sample_data():
             ("Flagship Health", "3210 N Academy Blvd Ste 1", "Colorado Springs", "Elka interested", datetime(2025, 3, 6)),
         ]
         
-        for i, (business, location, city, notes, date) in enumerate(visit_data):
+        for i, (business, address, city, notes, date) in enumerate(visit_data):
             visit = Visit(
+                stop_number=i+1,
                 business_name=business,
-                location=location,
+                address=address,
                 city=city,
                 notes=notes,
-                visit_date=date + timedelta(days=i*2),
-                facility_type="Healthcare",
-                follow_up_needed="No",
-                is_lead=False,
-                is_client=False
+                visit_date=date + timedelta(days=i*2)
             )
             db.add(visit)
         
@@ -93,9 +90,7 @@ def create_sample_data():
             # Create corresponding time entry
             time_entry = TimeEntry(
                 date=date,
-                hours_worked=hours,
-                hourly_rate=20.0,
-                description=f"Daily work - {hours} hours"
+                hours_worked=hours
             )
             db.add(time_entry)
         
