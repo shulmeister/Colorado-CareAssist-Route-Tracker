@@ -353,6 +353,26 @@ async def get_recent_activity(limit: int = 20, db: Session = Depends(get_db), cu
         logger.error(f"Error getting recent activity: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/visits")
+async def get_visits(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get all visits"""
+    try:
+        visits = db.query(Visit).order_by(Visit.visit_date.desc()).all()
+        return JSONResponse([visit.to_dict() for visit in visits])
+    except Exception as e:
+        logger.error(f"Error getting visits: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sales-bonuses")
+async def get_sales_bonuses(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get all sales bonuses"""
+    try:
+        sales = db.query(SalesBonus).order_by(SalesBonus.start_date.desc()).all()
+        return JSONResponse([sale.to_dict() for sale in sales])
+    except Exception as e:
+        logger.error(f"Error getting sales bonuses: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/dashboard/weekly-summary")
 async def get_weekly_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get this week's summary"""

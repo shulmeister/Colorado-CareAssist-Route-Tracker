@@ -550,13 +550,13 @@
                     <span class="nav-icon">📊</span>
                     Dashboard
                 </a>
-                <a href="#visits" class="nav-item">
+                <a href="#visits" class="nav-item" onclick="showVisitsTab()">
                     <span class="nav-icon">🏥</span>
                     Visits
                 </a>
-                <a href="#contacts" class="nav-item">
-                    <span class="nav-icon">👥</span>
-                    Contacts
+                <a href="#sales" class="nav-item" onclick="showSalesTab()">
+                    <span class="nav-icon">💰</span>
+                    Closed Sales
                 </a>
                 <a href="#reports" class="nav-item">
                     <span class="nav-icon">📈</span>
@@ -724,6 +724,64 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Visits Tab Content -->
+            <div id="visitsTab" class="tab-content" style="display: none;">
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Daily Visits Summary</h1>
+                    <p class="dashboard-subtitle">Visit tracking and facility data</p>
+                </div>
+
+                <div class="table-container">
+                    <h3>All Visits</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Business Name</th>
+                                <th>Address</th>
+                                <th>City</th>
+                                <th>Stop #</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visitsList">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #94a3b8;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Closed Sales Tab Content -->
+            <div id="salesTab" class="tab-content" style="display: none;">
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Closed Sales</h1>
+                    <p class="dashboard-subtitle">Sales bonuses and commission tracking</p>
+                </div>
+
+                <div class="table-container">
+                    <h3>Sales Bonuses</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Bonus Amount</th>
+                                <th>Commission Paid</th>
+                                <th>Start Date</th>
+                                <th>WellSky Status</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesList">
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: #94a3b8;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -1080,6 +1138,111 @@
                 }
                 appendBtn.textContent = 'Save Visits';
                 appendBtn.style.display = 'block';
+            }
+        }
+
+        // Tab switching functions
+        function showDashboardTab() {
+            hideAllTabs();
+            document.getElementById('visitsTab').style.display = 'none';
+            document.getElementById('salesTab').style.display = 'none';
+            updateActiveNav('dashboard');
+        }
+
+        function showVisitsTab() {
+            hideAllTabs();
+            document.getElementById('visitsTab').style.display = 'block';
+            updateActiveNav('visits');
+            loadVisitsData();
+        }
+
+        function showSalesTab() {
+            hideAllTabs();
+            document.getElementById('salesTab').style.display = 'block';
+            updateActiveNav('sales');
+            loadSalesData();
+        }
+
+        function hideAllTabs() {
+            // Hide all tab content
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(tab => tab.style.display = 'none');
+        }
+
+        function updateActiveNav(activeTab) {
+            // Update navigation active state
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            const activeItem = document.querySelector(`[onclick*="${activeTab}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+        }
+
+        // Load visits data
+        async function loadVisitsData() {
+            try {
+                const response = await fetch('/api/visits');
+                const visits = await response.json();
+
+                const tbody = document.getElementById('visitsList');
+                tbody.innerHTML = '';
+
+                if (visits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8;">No visits found</td></tr>';
+                    return;
+                }
+
+                visits.forEach(visit => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(visit.visit_date).toLocaleDateString()}</td>
+                        <td>${visit.business_name || 'N/A'}</td>
+                        <td>${visit.address || 'N/A'}</td>
+                        <td>${visit.city || 'N/A'}</td>
+                        <td>${visit.stop_number || 'N/A'}</td>
+                        <td>${visit.notes || 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading visits:', error);
+                const tbody = document.getElementById('visitsList');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading visits</td></tr>';
+            }
+        }
+
+        // Load sales data
+        async function loadSalesData() {
+            try {
+                const response = await fetch('/api/sales-bonuses');
+                const sales = await response.json();
+
+                const tbody = document.getElementById('salesList');
+                tbody.innerHTML = '';
+
+                if (sales.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8;">No sales data found</td></tr>';
+                    return;
+                }
+
+                sales.forEach(sale => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${sale.client_name || 'N/A'}</td>
+                        <td>$${sale.bonus_amount ? sale.bonus_amount.toLocaleString() : '0'}</td>
+                        <td>${sale.commission_paid ? '✅ Yes' : '❌ No'}</td>
+                        <td>${new Date(sale.start_date).toLocaleDateString()}</td>
+                        <td>${sale.wellsky_status || 'N/A'}</td>
+                        <td>${sale.status || 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading sales:', error);
+                const tbody = document.getElementById('salesList');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading sales data</td></tr>';
             }
         }
 

@@ -318,6 +318,16 @@ class PDFParser:
         if business_name and business_name != "Healthcare Facility":
             return business_name
         
+        # For MyWay routes, try to infer from street names + context
+        street_name = self._extract_street_name(address)
+        if street_name:
+            # Look for healthcare context in notes
+            healthcare_context = self._find_healthcare_context(notes)
+            if healthcare_context:
+                return f"{street_name} {healthcare_context}"
+            else:
+                return f"{street_name} Healthcare Facility"
+        
         # Default fallback
         return "Healthcare Facility"
     
@@ -430,4 +440,57 @@ class PDFParser:
         cleaned.sort(key=lambda x: x["stop"])
         
         return cleaned
+    
+    def _extract_street_name(self, address: str) -> Optional[str]:
+        """Extract street name from address"""
+        # Common street name patterns
+        street_patterns = [
+            r'(\w+)\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place)',
+            r'(\w+)\s+(?:North|South|East|West|N|S|E|W)\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard)',
+        ]
+        
+        for pattern in street_patterns:
+            match = re.search(pattern, address, re.IGNORECASE)
+            if match:
+                street_name = match.group(1).strip()
+                # Filter out common non-street words
+                if street_name.lower() not in ['the', 'at', 'of', 'and', 'on', 'in', 'to', 'for']:
+                    return street_name.title()
+        
+        # Try to extract first capitalized word as street name
+        words = address.split()
+        for word in words:
+            if word[0].isupper() and len(word) > 2:
+                return word.title()
+        
+        return None
+    
+    def _find_healthcare_context(self, notes: List[str]) -> Optional[str]:
+        """Find healthcare context in notes"""
+        healthcare_keywords = {
+            'hospital': 'Hospital',
+            'medical': 'Medical Center',
+            'health': 'Health Center',
+            'care': 'Care Center',
+            'clinic': 'Clinic',
+            'rehab': 'Rehabilitation Center',
+            'assisted': 'Assisted Living',
+            'senior': 'Senior Living',
+            'hospice': 'Hospice',
+            'emergency': 'Emergency Room',
+            'urgent': 'Urgent Care',
+            'primary': 'Primary Care',
+            'family': 'Family Medicine',
+            'internal': 'Internal Medicine',
+            'skilled': 'Skilled Nursing',
+            'recovery': 'Recovery Center',
+            'treatment': 'Treatment Center'
+        }
+        
+        notes_text = ' '.join(notes).lower()
+        for keyword, context in healthcare_keywords.items():
+            if keyword in notes_text:
+                return context
+        
+        return None
 
