@@ -45,8 +45,12 @@ class DatabaseManager:
             # Create session factory
             self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
             
-            # Create tables
-            Base.metadata.create_all(bind=self.engine)
+            # Create tables (only if they don't exist)
+            try:
+                Base.metadata.create_all(bind=self.engine)
+            except Exception as e:
+                logger.warning(f"Tables may already exist: {str(e)}")
+                # Try to continue anyway
             
             logger.info("Database initialized successfully")
             
