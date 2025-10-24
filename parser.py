@@ -326,7 +326,12 @@ class PDFParser:
             if healthcare_context:
                 return f"{street_name} {healthcare_context}"
             else:
-                return f"{street_name} Healthcare Facility"
+                # Try to find healthcare keywords in the full text
+                full_text = f"{address} {' '.join(notes)}".lower()
+                if any(keyword in full_text for keyword in ['hospital', 'medical', 'health', 'care', 'clinic', 'rehab', 'assisted', 'senior', 'hospice']):
+                    return f"{street_name} Healthcare Facility"
+                else:
+                    return f"{street_name} Healthcare Facility"  # Default to healthcare for MyWay routes
         
         # Default fallback
         return "Healthcare Facility"
@@ -457,11 +462,17 @@ class PDFParser:
                 if street_name.lower() not in ['the', 'at', 'of', 'and', 'on', 'in', 'to', 'for']:
                     return street_name.title()
         
-        # Try to extract first capitalized word as street name
+        # For MyWay routes, try to extract first capitalized word as street name
         words = address.split()
         for word in words:
-            if word[0].isupper() and len(word) > 2:
+            if word[0].isupper() and len(word) > 2 and word.lower() not in ['the', 'at', 'of', 'and', 'on', 'in', 'to', 'for', 'colorado', 'springs', 'denver']:
                 return word.title()
+        
+        # If no street name found, try to extract from the beginning of the address
+        if address:
+            first_word = address.split()[0] if address.split() else ""
+            if first_word and first_word[0].isupper() and len(first_word) > 2:
+                return first_word.title()
         
         return None
     

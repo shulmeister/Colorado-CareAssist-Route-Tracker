@@ -546,7 +546,7 @@
             </div>
             
             <nav class="nav-menu">
-                <a href="#dashboard" class="nav-item active">
+                <a href="#dashboard" class="nav-item active" onclick="showDashboardTab()">
                     <span class="nav-icon">📊</span>
                     Dashboard
                 </a>
@@ -584,10 +584,12 @@
 
         <!-- Main Content -->
         <div class="main-content">
-            <div class="dashboard-header">
-                <h1 class="dashboard-title">Sales Overview</h1>
-                <p class="dashboard-subtitle">Real-time insights and analytics</p>
-            </div>
+            <!-- Dashboard Tab Content -->
+            <div id="dashboardTab" class="tab-content">
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Sales Overview</h1>
+                    <p class="dashboard-subtitle">Real-time insights and analytics</p>
+                </div>
 
             <!-- KPI Cards -->
             <div class="kpi-grid">
@@ -1144,8 +1146,7 @@
         // Tab switching functions
         function showDashboardTab() {
             hideAllTabs();
-            document.getElementById('visitsTab').style.display = 'none';
-            document.getElementById('salesTab').style.display = 'none';
+            document.getElementById('dashboardTab').style.display = 'block';
             updateActiveNav('dashboard');
         }
 
