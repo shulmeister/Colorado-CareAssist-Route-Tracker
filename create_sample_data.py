@@ -77,13 +77,11 @@ def create_sample_data():
             financial_entry = FinancialEntry(
                 date=date,
                 hours_worked=hours,
-                hourly_rate=20.0,
+                labor_cost=hours * 20.0,  # $20/hour
                 miles_driven=miles,
-                mileage_rate=0.7,
-                gas_treats_cost=gas_treats,
-                total_cost=total_cost,
-                revenue=0.0,  # No revenue - cost tracking only
-                description=f"Daily work costs - {hours} hours, {miles} miles"
+                mileage_cost=miles * 0.7,  # $0.70/mile
+                materials_cost=gas_treats,
+                total_daily_cost=total_cost
             )
             db.add(financial_entry)
             
@@ -113,10 +111,10 @@ def create_sample_data():
             sales_bonus = SalesBonus(
                 client_name=client_name,
                 start_date=start_date,
-                commission_amount=commission,
+                bonus_amount=commission,
                 status=status,
-                wellsky_client=True,
-                notes=f"Status: {status}"
+                wellsky_status="Yes",
+                commission_paid=commission > 0
             )
             db.add(sales_bonus)
         
@@ -138,8 +136,7 @@ def create_sample_data():
         for date, notes in activity_data:
             activity_note = ActivityNote(
                 date=date,
-                notes=notes,
-                category="Daily Activity"
+                notes=notes
             )
             db.add(activity_note)
         
