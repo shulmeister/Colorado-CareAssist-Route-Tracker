@@ -8,8 +8,12 @@ def fix_business_names():
     """Update existing visits with better business names"""
     db = next(get_db())
     
-    # Get all visits with generic "Healthcare Facility" names
-    visits = db.query(Visit).filter(Visit.business_name.like("Healthcare Facility%")).all()
+    # Get all visits with generic "Healthcare Facility" names OR empty names
+    visits = db.query(Visit).filter(
+        (Visit.business_name.like("Healthcare Facility%")) | 
+        (Visit.business_name == "") | 
+        (Visit.business_name.is_(None))
+    ).all()
     
     print(f"Found {len(visits)} visits to update")
     
