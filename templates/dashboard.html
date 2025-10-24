@@ -106,14 +106,14 @@
             background: linear-gradient(135deg, #667eea, #764ba2);
             border: none;
             border-radius: 12px;
-            padding: 18px;
+            padding: 25px;
             cursor: pointer;
             color: white;
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -612,11 +612,6 @@
                         <p>Total Costs</p>
                     </div>
                     <div class="card summary-card">
-                        <div class="card-icon">🏆</div>
-                        <h3 id="totalBonusesPaid">-</h3>
-                        <p>Bonuses Paid</p>
-                    </div>
-                    <div class="card summary-card">
                         <div class="card-icon">📈</div>
                         <h3 id="costPerVisit">-</h3>
                         <p>Cost Per Visit</p>
@@ -1059,7 +1054,7 @@
                 data.forEach(activity => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${new Date(activity.timestamp).toLocaleDateString()}</td>
+                        <td>${new Date(activity.date).toLocaleDateString()}</td>
                         <td>${activity.type}</td>
                         <td>${activity.description}</td>
                     `;
@@ -1303,7 +1298,44 @@
                 appendBtn.style.display = 'block';
             } else {
                 // Display MyWay route visits
-                tableContainer.innerHTML = result.table_html || 'No data to display';
+                if (result.visits && result.visits.length > 0) {
+                    let tableHtml = `
+                        <div class="visits-table">
+                            <h3>🚗 MyWay Route Visits</h3>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Stop</th>
+                                        <th>Business Name</th>
+                                        <th>Address</th>
+                                        <th>City</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    result.visits.forEach(visit => {
+                        tableHtml += `
+                            <tr>
+                                <td>${visit.stop_number || ''}</td>
+                                <td>${visit.business_name || ''}</td>
+                                <td>${visit.address || ''}</td>
+                                <td>${visit.city || ''}</td>
+                                <td>${visit.notes || ''}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    tableContainer.innerHTML = tableHtml;
+                } else {
+                    tableContainer.innerHTML = '<p>No visits found in PDF. The PDF may not contain recognizable visit data.</p>';
+                }
                 appendBtn.textContent = 'Save Visits';
                 appendBtn.style.display = 'block';
             }
