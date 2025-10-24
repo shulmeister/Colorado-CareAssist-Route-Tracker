@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
-from models import Visit, TimeEntry, Contact, AnalyticsCache
+from models import Visit, TimeEntry, Contact, AnalyticsCache, FinancialEntry, SalesBonus
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import logging
@@ -22,7 +22,7 @@ class AnalyticsEngine:
             # Visits this month
             current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             visits_this_month = self.db.query(Visit).filter(
-                Visit.created_at >= current_month_start
+                Visit.visit_date >= current_month_start
             ).count()
             
             # Total hours worked
@@ -39,6 +39,36 @@ class AnalyticsEngine:
             # Unique facilities visited
             unique_facilities = self.db.query(func.count(func.distinct(Visit.business_name))).scalar()
             
+            # Financial KPIs - COSTS ONLY (no revenue from visits)
+            total_labor_cost = self.db.query(func.sum(FinancialEntry.labor_cost)).scalar() or 0
+            total_mileage_cost = self.db.query(func.sum(FinancialEntry.mileage_cost)).scalar() or 0
+            total_materials_cost = self.db.query(func.sum(FinancialEntry.materials_cost)).scalar() or 0
+            total_costs = self.db.query(func.sum(FinancialEntry.total_daily_cost)).scalar() or 0
+            
+            # This month costs
+            labor_cost_this_month = self.db.query(func.sum(FinancialEntry.labor_cost)).filter(
+                FinancialEntry.date >= current_month_start
+            ).scalar() or 0
+            costs_this_month = self.db.query(func.sum(FinancialEntry.total_daily_cost)).filter(
+                FinancialEntry.date >= current_month_start
+            ).scalar() or 0
+            
+            # Sales bonuses (revenue)
+            total_bonuses_earned = self.db.query(func.sum(SalesBonus.bonus_amount)).scalar() or 0
+            total_bonuses_paid = self.db.query(func.sum(SalesBonus.bonus_amount)).filter(
+                SalesBonus.commission_paid == True
+            ).scalar() or 0
+            
+            bonuses_this_month = self.db.query(func.sum(SalesBonus.bonus_amount)).filter(
+                SalesBonus.start_date >= current_month_start
+            ).scalar() or 0
+            
+            # Cost per visit
+            cost_per_visit = total_costs / total_visits if total_visits > 0 else 0
+            
+            # Bonus per visit (potential revenue)
+            bonus_per_visit = total_bonuses_earned / total_visits if total_visits > 0 else 0
+            
             return {
                 "total_visits": total_visits,
                 "visits_this_month": visits_this_month,
@@ -46,6 +76,16 @@ class AnalyticsEngine:
                 "hours_this_month": round(hours_this_month, 2),
                 "total_contacts": total_contacts,
                 "unique_facilities": unique_facilities,
+                "total_labor_cost": round(total_labor_cost, 2),
+                "total_mileage_cost": round(total_mileage_cost, 2),
+                "total_materials_cost": round(total_materials_cost, 2),
+                "total_costs": round(total_costs, 2),
+                "total_bonuses_earned": round(total_bonuses_earned, 2),
+                "total_bonuses_paid": round(total_bonuses_paid, 2),
+                "costs_this_month": round(costs_this_month, 2),
+                "bonuses_this_month": round(bonuses_this_month, 2),
+                "cost_per_visit": round(cost_per_visit, 2),
+                "bonus_per_visit": round(bonus_per_visit, 2),
                 "last_updated": datetime.utcnow().isoformat()
             }
             
@@ -60,12 +100,12 @@ class AnalyticsEngine:
             start_date = end_date - timedelta(days=months * 30)
             
             results = self.db.query(
-                func.date_trunc('month', Visit.created_at).label('month'),
+                func.date_trunc('month', Visit.visit_date).label('month'),
                 func.count(Visit.id).label('count')
             ).filter(
-                Visit.created_at >= start_date
+                Visit.visit_date >= start_date
             ).group_by(
-                func.date_trunc('month', Visit.created_at)
+                func.date_trunc('month', Visit.visit_date)
             ).order_by('month').all()
             
             return [
@@ -138,14 +178,14 @@ class AnalyticsEngine:
             
             # Recent visits
             recent_visits = self.db.query(Visit).order_by(
-                desc(Visit.created_at)
+                desc(Visit.visit_date)
             ).limit(limit).all()
             
             for visit in recent_visits:
                 activities.append({
                     "type": "visit",
                     "description": f"Visit to {visit.business_name}",
-                    "date": visit.created_at.isoformat(),
+                    "date": visit.visit_date.isoformat(),
                     "details": {
                         "stop": visit.stop_number,
                         "address": visit.address,
@@ -205,7 +245,7 @@ class AnalyticsEngine:
             
             # Visits this week
             visits_this_week = self.db.query(Visit).filter(
-                Visit.created_at >= start_of_week
+                Visit.visit_date >= start_of_week
             ).count()
             
             # Hours this week
@@ -228,3 +268,66 @@ class AnalyticsEngine:
         except Exception as e:
             logger.error(f"Error getting weekly summary: {str(e)}")
             return {}
+    
+    def get_financial_summary(self) -> Dict[str, Any]:
+        """Get comprehensive financial summary"""
+        try:
+            # Total financials - COSTS ONLY (no revenue from visits)
+            total_costs = self.db.query(func.sum(FinancialEntry.total_daily_cost)).scalar() or 0
+            
+            # This month
+            current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            costs_this_month = self.db.query(func.sum(FinancialEntry.total_daily_cost)).filter(
+                FinancialEntry.date >= current_month_start
+            ).scalar() or 0
+            
+            # Cost breakdown
+            total_labor_cost = self.db.query(func.sum(FinancialEntry.labor_cost)).scalar() or 0
+            total_mileage_cost = self.db.query(func.sum(FinancialEntry.mileage_cost)).scalar() or 0
+            total_materials_cost = self.db.query(func.sum(FinancialEntry.materials_cost)).scalar() or 0
+            
+            # Visit metrics
+            total_visits = self.db.query(Visit).count()
+            cost_per_visit = total_costs / total_visits if total_visits > 0 else 0
+            
+            return {
+                "total_costs": round(total_costs, 2),
+                "costs_this_month": round(costs_this_month, 2),
+                "total_labor_cost": round(total_labor_cost, 2),
+                "total_mileage_cost": round(total_mileage_cost, 2),
+                "total_materials_cost": round(total_materials_cost, 2),
+                "cost_per_visit": round(cost_per_visit, 2)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting financial summary: {str(e)}")
+            return {}
+    
+    def get_revenue_by_month(self, months: int = 12) -> List[Dict[str, Any]]:
+        """Get costs grouped by month (no revenue from visits)"""
+        try:
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=months * 30)
+            
+            results = self.db.query(
+                func.date_trunc('month', FinancialEntry.date).label('month'),
+                func.sum(FinancialEntry.total_daily_cost).label('costs')
+            ).filter(
+                FinancialEntry.date >= start_date
+            ).group_by(
+                func.date_trunc('month', FinancialEntry.date)
+            ).order_by('month').all()
+            
+            return [
+                {
+                    "month": result.month.strftime("%Y-%m"),
+                    "revenue": 0,  # No revenue from visits
+                    "costs": round(result.costs, 2),
+                    "profit": round(0 - result.costs, 2)  # Negative profit (costs only)
+                }
+                for result in results
+            ]
+            
+        except Exception as e:
+            logger.error(f"Error getting revenue by month: {str(e)}")
+            return []

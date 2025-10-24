@@ -758,18 +758,37 @@
                 const response = await fetch('/api/dashboard/summary');
                 const data = await response.json();
 
-                document.getElementById('totalVisits').textContent = data.total_visits;
-                document.getElementById('totalBonusesEarned').textContent = '$' + data.total_bonuses_earned.toLocaleString();
-                document.getElementById('totalCosts').textContent = '$' + data.total_costs.toLocaleString();
-                document.getElementById('totalBonusesPaid').textContent = '$' + data.total_bonuses_paid.toLocaleString();
-                document.getElementById('costPerVisit').textContent = '$' + data.cost_per_visit.toFixed(2);
-                document.getElementById('bonusPerVisit').textContent = '$' + data.bonus_per_visit.toFixed(2);
+                // Check if data exists and has the required fields
+                if (data && typeof data === 'object') {
+                    document.getElementById('totalVisits').textContent = data.total_visits || 0;
+                    document.getElementById('totalBonusesEarned').textContent = '$' + (data.total_bonuses_earned || 0).toLocaleString();
+                    document.getElementById('totalCosts').textContent = '$' + (data.total_costs || 0).toLocaleString();
+                    document.getElementById('totalBonusesPaid').textContent = '$' + (data.total_bonuses_paid || 0).toLocaleString();
+                    document.getElementById('costPerVisit').textContent = '$' + (data.cost_per_visit || 0).toFixed(2);
+                    document.getElementById('bonusPerVisit').textContent = '$' + (data.bonus_per_visit || 0).toFixed(2);
+                } else {
+                    console.error('Invalid data received from API:', data);
+                    // Set default values
+                    document.getElementById('totalVisits').textContent = '0';
+                    document.getElementById('totalBonusesEarned').textContent = '$0';
+                    document.getElementById('totalCosts').textContent = '$0';
+                    document.getElementById('totalBonusesPaid').textContent = '$0';
+                    document.getElementById('costPerVisit').textContent = '$0.00';
+                    document.getElementById('bonusPerVisit').textContent = '$0.00';
+                }
 
                 // Load charts
                 await loadCharts();
                 await loadRecentActivity();
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+                // Set default values on error
+                document.getElementById('totalVisits').textContent = '0';
+                document.getElementById('totalBonusesEarned').textContent = '$0';
+                document.getElementById('totalCosts').textContent = '$0';
+                document.getElementById('totalBonusesPaid').textContent = '$0';
+                document.getElementById('costPerVisit').textContent = '$0.00';
+                document.getElementById('bonusPerVisit').textContent = '$0.00';
             }
         }
 
