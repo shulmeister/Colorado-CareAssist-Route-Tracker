@@ -137,7 +137,7 @@ async def read_root(request: Request, current_user: Optional[Dict[str, Any]] = D
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any] = Depends(get_current_user)):
-    """Upload and parse PDF file (MyWay route or Time tracking)"""
+    """Upload and parse PDF file (MyWay route or Time tracking) or scan business card image"""
     try:
         # Validate file type
         file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
@@ -149,36 +149,59 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
         # Read file content
         content = await file.read()
         
-        # Parse PDF
-        logger.info(f"Parsing PDF: {file.filename}")
-        result = pdf_parser.parse_pdf(content)
-        
-        if not result.get("success", False):
-            error_msg = result.get("error", "Failed to parse PDF")
-            raise HTTPException(status_code=400, detail=error_msg)
-        
-        # Return appropriate response based on PDF type
-        if result["type"] == "time_tracking":
-            logger.info(f"Successfully parsed time tracking data: {result['date']} - {result['total_hours']} hours")
-            return JSONResponse({
-                "success": True,
-                "filename": file.filename,
-                "type": "time_tracking",
-                "date": result["date"],
-                "total_hours": result["total_hours"]
-            })
-        else:
-            visits = result["visits"]
-            if not visits:
-                raise HTTPException(status_code=400, detail="No visits found in PDF")
+        if file_extension == 'pdf':
+            # Parse PDF (MyWay route or Time tracking)
+            logger.info(f"Parsing PDF: {file.filename}")
+            result = pdf_parser.parse_pdf(content)
             
-            logger.info(f"Successfully parsed {len(visits)} visits")
+            if not result.get("success", False):
+                error_msg = result.get("error", "Failed to parse PDF")
+                logger.error(f"PDF parsing failed: {error_msg}")
+                raise HTTPException(status_code=400, detail=error_msg)
+        
+            # Return appropriate response based on PDF type
+            if result["type"] == "time_tracking":
+                logger.info(f"Successfully parsed time tracking data: {result['date']} - {result['total_hours']} hours")
+                return JSONResponse({
+                    "success": True,
+                    "filename": file.filename,
+                    "type": "time_tracking",
+                    "date": result["date"],
+                    "total_hours": result["total_hours"]
+                })
+            else:
+                visits = result["visits"]
+                if not visits:
+                    raise HTTPException(status_code=400, detail="No visits found in PDF")
+                
+                logger.info(f"Successfully parsed {len(visits)} visits")
+                return JSONResponse({
+                    "success": True,
+                    "filename": file.filename,
+                    "type": "myway_route",
+                    "visits": visits,
+                    "count": len(visits)
+                })
+        else:
+            # Handle business card image
+            logger.info(f"Processing business card image: {file.filename}")
+            result = business_card_scanner.scan_image(content)
+            
+            if not result.get("success", False):
+                error_msg = result.get("error", "Failed to scan business card")
+                logger.error(f"Business card scanning failed: {error_msg}")
+                raise HTTPException(status_code=400, detail=error_msg)
+            
+            # Validate contact information
+            contact = business_card_scanner.validate_contact(result["contact"])
+            
+            logger.info(f"Successfully scanned business card: {contact.get('name', 'Unknown')}")
             return JSONResponse({
                 "success": True,
                 "filename": file.filename,
-                "type": "myway_route",
-                "visits": visits,
-                "count": len(visits)
+                "type": "business_card",
+                "contact": contact,
+                "extracted_text": result.get("raw_text", "")
             })
         
     except Exception as e:
