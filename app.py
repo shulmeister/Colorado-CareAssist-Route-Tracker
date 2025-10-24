@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -12,8 +12,7 @@ from google_sheets import GoogleSheetsManager
 from database import get_db, db_manager
 from models import Visit, TimeEntry, Contact
 from analytics import AnalyticsEngine
-from business_card_scanner import BusinessCardScanner
-from dotenv import load_dotenv
+from migrate_data import GoogleSheetsMigrator
 
 # Load environment variables
 load_dotenv()
@@ -314,6 +313,34 @@ async def save_contact(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error saving contact: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving contact: {str(e)}")
+
+@app.post("/api/migrate-data")
+async def migrate_data():
+    """Migrate data from Google Sheets to database"""
+    try:
+        migrator = GoogleSheetsMigrator()
+        result = migrator.migrate_all_data()
+        
+        if result["success"]:
+            logger.info(f"Migration successful: {result['visits_migrated']} visits, {result['time_entries_migrated']} time entries")
+            return JSONResponse({
+                "success": True,
+                "message": f"Successfully migrated {result['visits_migrated']} visits and {result['time_entries_migrated']} time entries",
+                "visits_migrated": result["visits_migrated"],
+                "time_entries_migrated": result["time_entries_migrated"]
+            })
+        else:
+            logger.error(f"Migration failed: {result['error']}")
+            raise HTTPException(status_code=500, detail=f"Migration failed: {result['error']}")
+            
+    except Exception as e:
+        logger.error(f"Error during migration: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Migration error: {str(e)}")
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve favicon"""
+    return FileResponse("static/favicon.ico")
 
 @app.get("/health")
 async def health_check():
