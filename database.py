@@ -13,7 +13,11 @@ class DatabaseManager:
     def __init__(self):
         self.engine = None
         self.SessionLocal = None
-        self._initialize_database()
+        try:
+            self._initialize_database()
+        except Exception as e:
+            logger.warning(f"Database initialization failed, will retry later: {str(e)}")
+            # Don't fail the entire app startup
     
     def _initialize_database(self):
         """Initialize database connection"""
@@ -72,6 +76,10 @@ db_manager = DatabaseManager()
 
 def get_db():
     """Dependency to get database session"""
+    if not db_manager.SessionLocal:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Database not available")
+    
     db = db_manager.get_session()
     try:
         yield db
