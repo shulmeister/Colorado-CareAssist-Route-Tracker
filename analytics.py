@@ -63,8 +63,9 @@ class AnalyticsEngine:
                 SalesBonus.start_date >= current_month_start
             ).scalar() or 0
             
-            # Cost per visit
-            cost_per_visit = total_costs / total_visits if total_visits > 0 else 0
+            # Cost per visit (including bonuses as wages/expenses)
+            total_wages_expenses = total_costs + total_bonuses_earned
+            cost_per_visit = total_wages_expenses / total_visits if total_visits > 0 else 0
             
             # Bonus per visit (potential revenue)
             bonus_per_visit = total_bonuses_earned / total_visits if total_visits > 0 else 0
@@ -82,6 +83,7 @@ class AnalyticsEngine:
                 "total_costs": round(total_costs, 2),
                 "total_bonuses_earned": round(total_bonuses_earned, 2),
                 "total_bonuses_paid": round(total_bonuses_paid, 2),
+                "total_wages_expenses": round(total_wages_expenses, 2),
                 "costs_this_month": round(costs_this_month, 2),
                 "bonuses_this_month": round(bonuses_this_month, 2),
                 "cost_per_visit": round(cost_per_visit, 2),
