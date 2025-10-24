@@ -262,9 +262,9 @@ async def append_to_sheet(request: Request, db: Session = Depends(get_db), curre
             saved_visits = []
             for visit_data in visits:
                 visit = Visit(
-                    stop_number=visit_data.get("stop"),
+                    stop_number=visit_data.get("stop_number"),
                     business_name=visit_data.get("business_name"),
-                    address=visit_data.get("location"),
+                    address=visit_data.get("address"),
                     city=visit_data.get("city"),
                     notes=visit_data.get("notes")
                 )
