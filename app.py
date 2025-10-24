@@ -1,18 +1,23 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, status
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy.orm import Session
 import os
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 from parser import PDFParser
 from google_sheets import GoogleSheetsManager
 from database import get_db, db_manager
-from models import Visit, TimeEntry, Contact
+from models import Visit, TimeEntry, Contact, ActivityNote, FinancialEntry, SalesBonus
 from analytics import AnalyticsEngine
 from migrate_data import GoogleSheetsMigrator
+from business_card_scanner import BusinessCardScanner
+from auth import oauth_manager, get_current_user, get_current_user_optional
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -22,6 +27,21 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Colorado CareAssist Sales Dashboard", version="2.0.0")
+
+# Add security middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8000", "https://tracker.coloradocareassist.com"],  # Production domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add trusted host middleware
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["localhost", "127.0.0.1", "*.herokuapp.com", "tracker.coloradocareassist.com"]  # Production domain
+)
 
 # Mount static files and templates
 templates = Jinja2Templates(directory="templates")
@@ -38,13 +58,85 @@ except Exception as e:
     logger.error(f"Failed to initialize Google Sheets manager: {str(e)}")
     sheets_manager = None
 
+# Authentication endpoints
+@app.get("/auth/login")
+async def login():
+    """Redirect to Google OAuth login"""
+    try:
+        auth_url = oauth_manager.get_authorization_url()
+        return RedirectResponse(url=auth_url)
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Authentication service unavailable")
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request, code: str = None, error: str = None):
+    """Handle Google OAuth callback"""
+    if error:
+        logger.error(f"OAuth error: {error}")
+        raise HTTPException(status_code=400, detail=f"Authentication failed: {error}")
+    
+    if not code:
+        raise HTTPException(status_code=400, detail="Authorization code not provided")
+    
+    try:
+        result = await oauth_manager.handle_callback(code, "")
+        
+        # Create response with session cookie
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            key="session_token",
+            value=result["session_token"],
+            max_age=3600 * 24,  # 24 hours
+            httponly=True,
+            secure=True,  # HTTPS required in production
+            samesite="lax"
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Callback error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
+
+@app.post("/auth/logout")
+async def logout(request: Request):
+    """Logout user"""
+    session_token = request.cookies.get("session_token")
+    if session_token:
+        oauth_manager.logout(session_token)
+    
+    response = JSONResponse({"success": True, "message": "Logged out successfully"})
+    response.delete_cookie("session_token")
+    return response
+
+@app.get("/auth/me")
+async def get_current_user_info(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get current user information"""
+    return {
+        "success": True,
+        "user": {
+            "email": current_user.get("email"),
+            "name": current_user.get("name"),
+            "picture": current_user.get("picture"),
+            "domain": current_user.get("domain")
+        }
+    }
+
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
+async def read_root(request: Request, current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)):
     """Serve the main dashboard page"""
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    if not current_user:
+        # Redirect to login if not authenticated
+        return RedirectResponse(url="/auth/login")
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": current_user
+    })
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Upload and parse PDF file (MyWay route or Time tracking)"""
     try:
         # Validate file type
@@ -91,7 +183,7 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.post("/append-to-sheet")
-async def append_to_sheet(request: Request, db: Session = Depends(get_db)):
+async def append_to_sheet(request: Request, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Append visits to database and optionally sync to Google Sheet"""
     try:
         data = await request.json()
@@ -181,7 +273,7 @@ async def append_to_sheet(request: Request, db: Session = Depends(get_db)):
 
 # Dashboard API endpoints
 @app.get("/api/dashboard/summary")
-async def get_dashboard_summary(db: Session = Depends(get_db)):
+async def get_dashboard_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get dashboard summary statistics"""
     try:
         analytics = AnalyticsEngine(db)
@@ -192,7 +284,7 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/dashboard/visits-by-month")
-async def get_visits_by_month(months: int = 12, db: Session = Depends(get_db)):
+async def get_visits_by_month(months: int = 12, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get visits grouped by month"""
     try:
         analytics = AnalyticsEngine(db)
@@ -203,7 +295,7 @@ async def get_visits_by_month(months: int = 12, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/dashboard/hours-by-month")
-async def get_hours_by_month(months: int = 12, db: Session = Depends(get_db)):
+async def get_hours_by_month(months: int = 12, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get hours worked grouped by month"""
     try:
         analytics = AnalyticsEngine(db)
@@ -214,7 +306,7 @@ async def get_hours_by_month(months: int = 12, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/dashboard/top-facilities")
-async def get_top_facilities(limit: int = 10, db: Session = Depends(get_db)):
+async def get_top_facilities(limit: int = 10, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get most visited facilities"""
     try:
         analytics = AnalyticsEngine(db)
@@ -225,7 +317,7 @@ async def get_top_facilities(limit: int = 10, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/dashboard/recent-activity")
-async def get_recent_activity(limit: int = 20, db: Session = Depends(get_db)):
+async def get_recent_activity(limit: int = 20, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get recent activity across all data types"""
     try:
         analytics = AnalyticsEngine(db)
@@ -236,7 +328,7 @@ async def get_recent_activity(limit: int = 20, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/dashboard/weekly-summary")
-async def get_weekly_summary(db: Session = Depends(get_db)):
+async def get_weekly_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get this week's summary"""
     try:
         analytics = AnalyticsEngine(db)
@@ -248,7 +340,7 @@ async def get_weekly_summary(db: Session = Depends(get_db)):
 
 # Business card scanning endpoint
 @app.post("/api/scan-business-card")
-async def scan_business_card(file: UploadFile = File(...)):
+async def scan_business_card(file: UploadFile = File(...), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Scan business card image and extract contact information"""
     try:
         # Validate file type
@@ -281,7 +373,7 @@ async def scan_business_card(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error scanning business card: {str(e)}")
 
 @app.post("/api/save-contact")
-async def save_contact(request: Request, db: Session = Depends(get_db)):
+async def save_contact(request: Request, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Save contact to database"""
     try:
         data = await request.json()
@@ -315,7 +407,7 @@ async def save_contact(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error saving contact: {str(e)}")
 
 @app.post("/api/migrate-data")
-async def migrate_data():
+async def migrate_data(current_user: Dict[str, Any] = Depends(get_current_user)):
     """Migrate data from Google Sheets to database"""
     try:
         migrator = GoogleSheetsMigrator()
@@ -336,6 +428,130 @@ async def migrate_data():
     except Exception as e:
         logger.error(f"Error during migration: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Migration error: {str(e)}")
+
+@app.get("/api/dashboard/financial-summary")
+async def get_financial_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get comprehensive financial summary"""
+    try:
+        analytics = AnalyticsEngine(db)
+        summary = analytics.get_financial_summary()
+        return JSONResponse(summary)
+    except Exception as e:
+        logger.error(f"Error getting financial summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting financial summary: {str(e)}")
+
+@app.get("/api/dashboard/revenue-by-month")
+async def get_revenue_by_month(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get revenue by month"""
+    try:
+        analytics = AnalyticsEngine(db)
+        data = analytics.get_revenue_by_month()
+        return JSONResponse(data)
+    except Exception as e:
+        logger.error(f"Error getting revenue by month: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting revenue by month: {str(e)}")
+
+# Activity Notes API Endpoints
+@app.get("/api/activity-notes")
+async def get_activity_notes(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get all activity notes"""
+    try:
+        notes = db.query(ActivityNote).order_by(ActivityNote.date.desc()).all()
+        return JSONResponse({
+            "success": True,
+            "notes": [note.to_dict() for note in notes]
+        })
+    except Exception as e:
+        logger.error(f"Error fetching activity notes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching activity notes: {str(e)}")
+
+@app.post("/api/activity-notes")
+async def create_activity_note(request: Request, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Create a new activity note"""
+    try:
+        data = await request.json()
+        date_str = data.get("date")
+        notes_text = data.get("notes")
+        
+        if not date_str or not notes_text:
+            raise HTTPException(status_code=400, detail="Date and notes are required")
+        
+        # Parse date
+        from datetime import datetime
+        note_date = datetime.fromisoformat(date_str.replace('Z', '+00:00')) if 'T' in date_str else datetime.strptime(date_str, '%Y-%m-%d')
+        
+        activity_note = ActivityNote(
+            date=note_date,
+            notes=notes_text
+        )
+        
+        db.add(activity_note)
+        db.commit()
+        db.refresh(activity_note)
+        
+        logger.info(f"Successfully created activity note for {note_date}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Activity note created successfully",
+            "note": activity_note.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating activity note: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating activity note: {str(e)}")
+
+@app.put("/api/activity-notes/{note_id}")
+async def update_activity_note(note_id: int, request: Request, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Update an existing activity note"""
+    try:
+        data = await request.json()
+        notes_text = data.get("notes")
+        
+        if not notes_text:
+            raise HTTPException(status_code=400, detail="Notes are required")
+        
+        activity_note = db.query(ActivityNote).filter(ActivityNote.id == note_id).first()
+        if not activity_note:
+            raise HTTPException(status_code=404, detail="Activity note not found")
+        
+        activity_note.notes = notes_text
+        db.commit()
+        db.refresh(activity_note)
+        
+        logger.info(f"Successfully updated activity note {note_id}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Activity note updated successfully",
+            "note": activity_note.to_dict()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error updating activity note: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating activity note: {str(e)}")
+
+@app.delete("/api/activity-notes/{note_id}")
+async def delete_activity_note(note_id: int, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Delete an activity note"""
+    try:
+        activity_note = db.query(ActivityNote).filter(ActivityNote.id == note_id).first()
+        if not activity_note:
+            raise HTTPException(status_code=404, detail="Activity note not found")
+        
+        db.delete(activity_note)
+        db.commit()
+        
+        logger.info(f"Successfully deleted activity note {note_id}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Activity note deleted successfully"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting activity note: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting activity note: {str(e)}")
 
 @app.get("/favicon.ico")
 async def favicon():
