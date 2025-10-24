@@ -63,8 +63,8 @@ class AnalyticsEngine:
                 SalesBonus.start_date >= current_month_start
             ).scalar() or 0
             
-        # Cost per visit (EXCLUDE bonuses - just daily summary costs)
-        cost_per_visit = total_costs / total_visits if total_visits > 0 else 0
+            # Cost per visit (EXCLUDE bonuses - just daily summary costs)
+            cost_per_visit = total_costs / total_visits if total_visits > 0 else 0
             
             # Bonus per visit (potential revenue)
             bonus_per_visit = total_bonuses_earned / total_visits if total_visits > 0 else 0
