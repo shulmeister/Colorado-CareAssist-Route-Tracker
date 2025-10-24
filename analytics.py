@@ -332,3 +332,30 @@ class AnalyticsEngine:
         except Exception as e:
             logger.error(f"Error getting revenue by month: {str(e)}")
             return []
+    
+    def get_costs_by_month(self, months: int = 12) -> List[Dict[str, Any]]:
+        """Get costs grouped by month"""
+        try:
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=months * 30)
+            
+            results = self.db.query(
+                func.date_trunc('month', FinancialEntry.date).label('month'),
+                func.sum(FinancialEntry.total_daily_cost).label('costs')
+            ).filter(
+                FinancialEntry.date >= start_date
+            ).group_by(
+                func.date_trunc('month', FinancialEntry.date)
+            ).order_by('month').all()
+            
+            return [
+                {
+                    "month": result.month.strftime("%Y-%m"),
+                    "costs": round(result.costs, 2)
+                }
+                for result in results
+            ]
+            
+        except Exception as e:
+            logger.error(f"Error getting costs by month: {str(e)}")
+            return []

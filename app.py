@@ -342,6 +342,17 @@ async def get_top_facilities(limit: int = 10, db: Session = Depends(get_db), cur
         logger.error(f"Error getting top facilities: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/dashboard/costs-by-month")
+async def get_costs_by_month(months: int = 12, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get costs grouped by month"""
+    try:
+        analytics = AnalyticsEngine(db)
+        data = analytics.get_costs_by_month(months)
+        return JSONResponse(data)
+    except Exception as e:
+        logger.error(f"Error getting costs by month: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/dashboard/recent-activity")
 async def get_recent_activity(limit: int = 20, db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get recent activity across all data types"""

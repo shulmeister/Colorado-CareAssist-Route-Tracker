@@ -290,9 +290,9 @@ class PDFParser:
         combined_notes = " ".join(notes).strip()
         
         return {
-            "stop": stop_num,
+            "stop_number": stop_num,
             "business_name": business_name,
-            "location": clean_address,
+            "address": clean_address,
             "city": city,
             "notes": combined_notes
         }
@@ -427,22 +427,22 @@ class PDFParser:
         
         for visit in visits:
             # Skip duplicates
-            if visit["stop"] in seen_stops:
+            if visit["stop_number"] in seen_stops:
                 continue
             
             # Skip incomplete visits
-            if not visit["location"] or len(visit["location"]) < 10:
+            if not visit["address"] or len(visit["address"]) < 10:
                 continue
             
             # Skip obviously invalid stops
-            if visit["stop"] < 1 or visit["stop"] > 100:
+            if visit["stop_number"] < 1 or visit["stop_number"] > 100:
                 continue
             
-            seen_stops.add(visit["stop"])
+            seen_stops.add(visit["stop_number"])
             cleaned.append(visit)
         
         # Sort by stop number
-        cleaned.sort(key=lambda x: x["stop"])
+        cleaned.sort(key=lambda x: x["stop_number"])
         
         return cleaned
     
