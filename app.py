@@ -140,8 +140,11 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
     """Upload and parse PDF file (MyWay route or Time tracking)"""
     try:
         # Validate file type
-        if not file.filename.lower().endswith('.pdf'):
-            raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+        file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
+        allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png']
+        
+        if file_extension not in allowed_extensions:
+            raise HTTPException(status_code=400, detail=f"Only {', '.join(allowed_extensions)} files are allowed")
         
         # Read file content
         content = await file.read()
