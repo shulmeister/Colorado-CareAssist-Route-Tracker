@@ -142,13 +142,13 @@ class GoogleSheetsMigrator:
                         business_name = row[2] or "Unknown Facility"
                     
                     if len(row) >= 4:
-                        address = row[3] or ""
+                        address = (row[3] or "")[:500]  # Truncate to 500 chars
                     
                     if len(row) >= 5:
-                        city = row[4] or ""
+                        city = (row[4] or "")[:500]  # Truncate to 500 chars
                     
                     if len(row) >= 6:
-                        notes = row[5] or ""
+                        notes = (row[5] or "")[:1000]  # Truncate to 1000 chars
                     
                     # Create visit record
                     visit = Visit(

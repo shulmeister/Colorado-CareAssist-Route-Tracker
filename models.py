@@ -14,7 +14,7 @@ class Visit(Base):
     stop_number = Column(Integer, nullable=False)
     business_name = Column(String(255), nullable=False)
     address = Column(Text, nullable=True)
-    city = Column(String(100), nullable=True)
+    city = Column(String(500), nullable=True)
     notes = Column(Text, nullable=True)
     visit_date = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
