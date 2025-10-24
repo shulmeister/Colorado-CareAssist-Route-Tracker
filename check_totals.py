@@ -6,14 +6,15 @@ Check correct totals from CSV data
 from database import db_manager
 from models import *
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
 SessionLocal = sessionmaker(bind=db_manager.engine)
 db = SessionLocal()
 
 try:
     # Current database totals
-    total_costs = db.query(FinancialEntry).with_entities(db.func.sum(FinancialEntry.total_daily_cost)).scalar() or 0
-    total_bonuses = db.query(SalesBonus).with_entities(db.func.sum(SalesBonus.bonus_amount)).scalar() or 0
+    total_costs = db.query(FinancialEntry).with_entities(func.sum(FinancialEntry.total_daily_cost)).scalar() or 0
+    total_bonuses = db.query(SalesBonus).with_entities(func.sum(SalesBonus.bonus_amount)).scalar() or 0
     total_visits = db.query(Visit).count()
     
     print("Current DB totals:")
