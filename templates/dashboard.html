@@ -106,12 +106,17 @@
             background: linear-gradient(135deg, #667eea, #764ba2);
             border: none;
             border-radius: 12px;
-            padding: 12px;
+            padding: 18px;
             cursor: pointer;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.8rem;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .nav-toggle:hover {
@@ -354,6 +359,81 @@
             padding: 25px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-instructions {
+            margin-bottom: 30px;
+        }
+
+        .upload-instructions h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .file-types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .file-type {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .file-type strong {
+            color: #333;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .file-type ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .file-type li {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .upload-area {
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .file-selected {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .upload-status {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .upload-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .upload-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
 
         .file-input {
@@ -652,12 +732,33 @@
 
             <!-- Upload Page -->
             <div id="upload" class="page">
-                <h2>Upload Files</h2>
+                <h2>📤 Upload Files</h2>
                 <div class="upload-section">
-                    <p>Select a PDF (MyWay route or time tracking) or a business card image.</p>
-                    <input type="file" id="fileInput" class="file-input" accept=".pdf,image/*">
-                    <button class="upload-btn" id="uploadBtn">Choose File</button>
-                    <div class="file-info" id="fileInfo"></div>
+                    <div class="upload-instructions">
+                        <h3>Supported File Types:</h3>
+                        <div class="file-types">
+                            <div class="file-type">
+                                <strong>📄 PDF Files:</strong>
+                                <ul>
+                                    <li>MyWay route PDFs (.pdf)</li>
+                                    <li>Time tracking PDFs (.pdf)</li>
+                                </ul>
+                            </div>
+                            <div class="file-type">
+                                <strong>🖼️ Image Files:</strong>
+                                <ul>
+                                    <li>Business card photos (.jpg, .jpeg, .png)</li>
+                                    <li>Scanned business cards (.jpg, .jpeg, .png)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-area">
+                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.jpeg,.png">
+                        <button class="upload-btn" id="uploadBtn">📁 Choose File</button>
+                        <div class="file-info" id="fileInfo"></div>
+                    </div>
                 </div>
 
                 <div class="success-message" id="successMessage"></div>
@@ -1065,10 +1166,14 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            // Show file info immediately
             document.getElementById('fileInfo').innerHTML = `
-                <strong>Selected:</strong> ${file.name}<br>
-                <strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
-                <strong>Type:</strong> ${file.type}
+                <div class="file-selected">
+                    <strong>✅ Selected:</strong> ${file.name}<br>
+                    <strong>📏 Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                    <strong>📄 Type:</strong> ${file.type}<br>
+                    <div class="upload-status">🔄 Processing...</div>
+                </div>
             `;
 
             try {
@@ -1080,15 +1185,44 @@
                     body: formData
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
                 if (result.success) {
+                    document.getElementById('fileInfo').innerHTML = `
+                        <div class="file-selected">
+                            <strong>✅ Selected:</strong> ${file.name}<br>
+                            <strong>📏 Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                            <strong>📄 Type:</strong> ${file.type}<br>
+                            <div class="upload-status success">✅ Upload successful!</div>
+                        </div>
+                    `;
                     displayResults(result);
+                    showMessage('File uploaded and processed successfully!', 'success');
                 } else {
+                    document.getElementById('fileInfo').innerHTML = `
+                        <div class="file-selected">
+                            <strong>❌ Selected:</strong> ${file.name}<br>
+                            <strong>📏 Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                            <strong>📄 Type:</strong> ${file.type}<br>
+                            <div class="upload-status error">❌ Upload failed</div>
+                        </div>
+                    `;
                     showMessage(result.error || 'Upload failed', 'error');
                 }
             } catch (error) {
                 console.error('Upload error:', error);
-                showMessage('Upload failed', 'error');
+                document.getElementById('fileInfo').innerHTML = `
+                    <div class="file-selected">
+                        <strong>❌ Selected:</strong> ${file.name}<br>
+                        <strong>📏 Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                        <strong>📄 Type:</strong> ${file.type}<br>
+                        <div class="upload-status error">❌ Upload failed: ${error.message}</div>
+                    </div>
+                `;
+                showMessage('Upload failed: ' + error.message, 'error');
             }
         });
 
