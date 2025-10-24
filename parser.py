@@ -376,6 +376,11 @@ class PDFParser:
             # Join capitalized words to form business name
             business_name = " ".join(capitalized_words)
             if len(business_name) > 3:
+                # Check if this looks like a street name rather than a business name
+                # Street names are usually single words or very short phrases
+                if len(capitalized_words) == 1 and len(business_name) < 10:
+                    # This is likely a street name, not a business name
+                    return None
                 return business_name
         
         # Try to extract from notes if available
