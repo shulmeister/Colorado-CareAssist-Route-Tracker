@@ -1198,10 +1198,19 @@
         // Load visits data
         async function loadVisitsData() {
             try {
+                console.log('Loading visits data...');
                 const response = await fetch('/api/visits', {
                     credentials: 'include'
                 });
+                
+                console.log('Visits response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const visits = await response.json();
+                console.log('Visits data received:', visits.length, 'visits');
 
                 const tbody = document.getElementById('visitsList');
                 tbody.innerHTML = '';
@@ -1233,10 +1242,19 @@
         // Load sales data
         async function loadSalesData() {
             try {
+                console.log('Loading sales data...');
                 const response = await fetch('/api/sales-bonuses', {
                     credentials: 'include'
                 });
+                
+                console.log('Sales response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const sales = await response.json();
+                console.log('Sales data received:', sales.length, 'sales');
 
                 const tbody = document.getElementById('salesList');
                 tbody.innerHTML = '';
