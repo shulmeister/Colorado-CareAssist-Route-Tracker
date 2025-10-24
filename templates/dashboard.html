@@ -518,7 +518,7 @@
 
                     <!-- Charts -->
                     <div class="card chart-card">
-                        <h2>Revenue vs Costs by Month</h2>
+                        <h2>Costs by Month</h2>
                         <canvas id="revenueChart"></canvas>
                     </div>
                     <div class="card chart-card">
@@ -811,7 +811,7 @@
                     return;
                 }
 
-                // Revenue vs Costs Chart
+                // Costs by Month Chart (No Revenue)
                 const revenueResponse = await fetch('/api/dashboard/revenue-by-month');
                 const revenueData = await revenueResponse.json();
 
@@ -824,13 +824,6 @@
                     data: {
                         labels: revenueData.map(item => item.month),
                         datasets: [
-                            {
-                                label: 'Revenue',
-                                data: revenueData.map(item => item.revenue),
-                                backgroundColor: 'rgba(39, 174, 96, 0.8)',
-                                borderColor: '#27ae60',
-                                borderWidth: 1
-                            },
                             {
                                 label: 'Costs',
                                 data: revenueData.map(item => item.costs),
