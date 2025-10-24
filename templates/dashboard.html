@@ -250,6 +250,12 @@
             padding: 24px;
         }
 
+        .chart-card canvas {
+            width: 100% !important;
+            height: 300px !important;
+            max-height: 300px;
+        }
+
         .chart-header {
             display: flex;
             align-items: center;
@@ -657,7 +663,7 @@
                             <div class="chart-subtitle">Monthly cost trends</div>
                         </div>
                     </div>
-                    <canvas id="costsChart" width="400" height="200"></canvas>
+                    <canvas id="costsChart"></canvas>
                 </div>
 
                 <div class="chart-card">
@@ -667,7 +673,7 @@
                             <div class="chart-subtitle">Most visited locations</div>
                         </div>
                     </div>
-                    <canvas id="facilitiesChart" width="300" height="200"></canvas>
+                    <canvas id="facilitiesChart"></canvas>
                 </div>
             </div>
 
