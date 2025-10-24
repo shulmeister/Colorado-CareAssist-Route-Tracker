@@ -25,6 +25,12 @@ class DatabaseManager:
                 # Fallback to SQLite for local development
                 database_url = "sqlite:///./sales_tracker.db"
                 logger.info("Using SQLite for local development")
+            else:
+                # Fix PostgreSQL URL format for SQLAlchemy
+                if database_url.startswith("postgres://"):
+                    database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+                elif database_url.startswith("postgresql://"):
+                    database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
             
             # Create engine
             if database_url.startswith("sqlite"):
