@@ -326,12 +326,12 @@ class PDFParser:
             if healthcare_context:
                 return f"{street_name} {healthcare_context}"
             else:
-                # Try to find healthcare keywords in the full text
-                full_text = f"{address} {' '.join(notes)}".lower()
-                if any(keyword in full_text for keyword in ['hospital', 'medical', 'health', 'care', 'clinic', 'rehab', 'assisted', 'senior', 'hospice']):
-                    return f"{street_name} Healthcare Facility"
+                # For MyWay routes, create more descriptive names based on street patterns
+                if street_name.lower() in ['monaco', 'arkansas', 'morrison', 'lowell', 'downing', 'harrison', 'first', 'mississippi']:
+                    # These are common healthcare facility streets in Colorado Springs
+                    return f"{street_name} Healthcare Center"
                 else:
-                    return f"{street_name} Healthcare Facility"  # Default to healthcare for MyWay routes
+                    return f"{street_name} Healthcare Facility"
         
         # Default fallback
         return "Healthcare Facility"

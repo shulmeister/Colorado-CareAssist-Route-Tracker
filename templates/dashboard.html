@@ -937,9 +937,9 @@
                 window.facilitiesChart = new Chart(facilitiesCtx, {
                     type: 'doughnut',
                     data: {
-                        labels: facilitiesData.slice(0, 5).map(item => item.facility_name),
+                        labels: facilitiesData.slice(0, 5).map(item => item.facility || 'Unknown'),
                         datasets: [{
-                            data: facilitiesData.slice(0, 5).map(item => item.visit_count),
+                            data: facilitiesData.slice(0, 5).map(item => item.visits),
                             backgroundColor: [
                                 '#3b82f6',
                                 '#8b5cf6',
