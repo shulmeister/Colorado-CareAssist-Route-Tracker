@@ -436,6 +436,37 @@
             border: 1px solid #f5c6cb;
         }
 
+        .contact-card, .time-tracking-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .contact-details, .time-details {
+            margin: 15px 0;
+        }
+
+        .contact-details p, .time-details p {
+            margin: 8px 0;
+            color: #333;
+        }
+
+        .extracted-text {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+
+        .extracted-text pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
         .file-input {
             display: none;
         }
@@ -1232,14 +1263,49 @@
             document.getElementById('dataTypeEl').textContent = result.type || 'Unknown';
 
             const tableContainer = document.getElementById('tableContainer');
-            tableContainer.innerHTML = result.table_html || 'No data to display';
-
-            // Update button text based on type
             const appendBtn = document.getElementById('appendBtn');
-            if (result.type === 'time_tracking') {
+
+            if (result.type === 'business_card') {
+                // Display business card contact information
+                const contact = result.contact || {};
+                tableContainer.innerHTML = `
+                    <div class="contact-card">
+                        <h3>📇 Extracted Contact Information</h3>
+                        <div class="contact-details">
+                            <p><strong>Name:</strong> ${contact.name || 'Not detected'}</p>
+                            <p><strong>Company:</strong> ${contact.company || 'Not detected'}</p>
+                            <p><strong>Title:</strong> ${contact.title || 'Not detected'}</p>
+                            <p><strong>Phone:</strong> ${contact.phone || 'Not detected'}</p>
+                            <p><strong>Email:</strong> ${contact.email || 'Not detected'}</p>
+                            <p><strong>Website:</strong> ${contact.website || 'Not detected'}</p>
+                            <p><strong>Address:</strong> ${contact.address || 'Not detected'}</p>
+                        </div>
+                        <div class="extracted-text">
+                            <h4>Raw Extracted Text:</h4>
+                            <pre>${result.extracted_text || 'No text extracted'}</pre>
+                        </div>
+                    </div>
+                `;
+                appendBtn.textContent = 'Save Contact';
+                appendBtn.style.display = 'block';
+            } else if (result.type === 'time_tracking') {
+                // Display time tracking data
+                tableContainer.innerHTML = `
+                    <div class="time-tracking-card">
+                        <h3>⏰ Time Tracking Data</h3>
+                        <div class="time-details">
+                            <p><strong>Date:</strong> ${result.date || 'Not detected'}</p>
+                            <p><strong>Total Hours:</strong> ${result.total_hours || 'Not detected'}</p>
+                        </div>
+                    </div>
+                `;
                 appendBtn.textContent = 'Update Hours';
+                appendBtn.style.display = 'block';
             } else {
+                // Display MyWay route visits
+                tableContainer.innerHTML = result.table_html || 'No data to display';
                 appendBtn.textContent = 'Save Visits';
+                appendBtn.style.display = 'block';
             }
         }
 
