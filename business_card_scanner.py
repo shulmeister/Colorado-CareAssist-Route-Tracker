@@ -2,6 +2,8 @@ import pytesseract
 from PIL import Image
 import io
 import re
+import os
+import tempfile
 from typing import Dict, Any, Optional
 import logging
 from pillow_heif import register_heif_opener, HeifImage
@@ -34,15 +36,32 @@ class BusinessCardScanner:
                 logger.info(f"Successfully opened image: {image.format}, mode: {image.mode}, size: {image.size}")
             except Exception as e:
                 logger.error(f"Failed to open image with PIL: {str(e)}")
-                # Try HEIF directly for HEIC files
+                # Try HEIF directly for HEIC files using temporary file
                 try:
-                    logger.info("Attempting to open as HEIF image")
+                    logger.info("Attempting to open as HEIF image using temporary file")
                     image_buffer.seek(0)
-                    # Convert BytesIO to bytes for HeifImage
-                    heif_data = image_buffer.getvalue()
-                    heif_image = HeifImage(heif_data)
-                    image = heif_image.to_pillow()
-                    logger.info(f"Successfully opened HEIF image: {image.mode}, size: {image.size}")
+                    
+                    # Create temporary file for HEIF processing
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.heic') as temp_file:
+                        temp_file.write(image_buffer.getvalue())
+                        temp_file_path = temp_file.name
+                    
+                    try:
+                        # Open HEIF image using file path
+                        heif_image = HeifImage.open(temp_file_path)
+                        image = Image.frombytes(
+                            heif_image.mode, 
+                            heif_image.size, 
+                            heif_image.data,
+                            "raw",
+                            heif_image.mode,
+                            heif_image.stride,
+                        )
+                        logger.info(f"Successfully opened HEIF image: {image.mode}, size: {image.size}")
+                    finally:
+                        # Clean up temporary file
+                        os.unlink(temp_file_path)
+                        
                 except Exception as heif_error:
                     logger.error(f"Failed to open as HEIF: {str(heif_error)}")
                     raise e
