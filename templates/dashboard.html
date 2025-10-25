@@ -1211,6 +1211,7 @@
                 
                 const visits = await response.json();
                 console.log('Visits data received:', visits.length, 'visits');
+                console.log('First visit sample:', visits[0]);
 
                 const tbody = document.getElementById('visitsList');
                 tbody.innerHTML = '';
@@ -1255,6 +1256,7 @@
                 
                 const sales = await response.json();
                 console.log('Sales data received:', sales.length, 'sales');
+                console.log('First sale sample:', sales[0]);
 
                 const tbody = document.getElementById('salesList');
                 tbody.innerHTML = '';
