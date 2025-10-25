@@ -1317,13 +1317,13 @@
             } else if (buttonText === 'Save Visits') {
                 // Handle saving visits (existing functionality)
                 try {
-                    const response = await fetch('/api/save-visits', {
+                    const response = await fetch('/append-to-sheet', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         credentials: 'include',
-                        body: JSON.stringify({ visits: currentVisits })
+                        body: JSON.stringify({ visits: currentVisits, type: 'myway_route' })
                     });
                     
                     const result = await response.json();
@@ -1345,13 +1345,17 @@
             } else if (buttonText === 'Update Hours') {
                 // Handle updating hours (existing functionality)
                 try {
-                    const response = await fetch('/api/save-time-entry', {
+                    const response = await fetch('/append-to-sheet', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         credentials: 'include',
-                        body: JSON.stringify({ timeEntry: currentTimeEntry })
+                        body: JSON.stringify({ 
+                            type: 'time_tracking',
+                            date: currentTimeEntry.date,
+                            total_hours: currentTimeEntry.total_hours
+                        })
                     });
                     
                     const result = await response.json();
