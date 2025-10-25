@@ -26,6 +26,14 @@
             min-height: 100vh;
         }
 
+        .tab-content {
+            display: block;
+        }
+        
+        .tab-content.hidden {
+            display: none !important;
+        }
+
         /* Sidebar */
         .sidebar {
             background: #1e293b;
@@ -735,7 +743,7 @@
             </div>
 
             <!-- Visits Tab Content -->
-            <div id="visitsTab" class="tab-content" style="display: none;">
+            <div id="visitsTab" class="tab-content hidden">
                 <div class="dashboard-header">
                     <h1 class="dashboard-title">Daily Visits Summary</h1>
                     <p class="dashboard-subtitle">Visit tracking and facility data</p>
@@ -764,7 +772,7 @@
             </div>
 
             <!-- Closed Sales Tab Content -->
-            <div id="salesTab" class="tab-content" style="display: none;">
+            <div id="salesTab" class="tab-content hidden">
                 <div class="dashboard-header">
                     <h1 class="dashboard-title">Closed Sales</h1>
                     <p class="dashboard-subtitle">Sales bonuses and commission tracking</p>
@@ -1169,13 +1177,8 @@
             hideAllTabs();
             const visitsTab = document.getElementById('visitsTab');
             console.log('visitsTab element:', visitsTab);
-            visitsTab.style.display = 'block';
-            console.log('visitsTab display set to block');
-            // Force the display to stay visible
-            setTimeout(() => {
-                visitsTab.style.display = 'block';
-                console.log('visitsTab display forced to block after timeout');
-            }, 100);
+            visitsTab.classList.remove('hidden');
+            console.log('visitsTab hidden class removed');
             updateActiveNav('visits');
             loadVisitsData();
         }
@@ -1185,13 +1188,8 @@
             hideAllTabs();
             const salesTab = document.getElementById('salesTab');
             console.log('salesTab element:', salesTab);
-            salesTab.style.display = 'block';
-            console.log('salesTab display set to block');
-            // Force the display to stay visible
-            setTimeout(() => {
-                salesTab.style.display = 'block';
-                console.log('salesTab display forced to block after timeout');
-            }, 100);
+            salesTab.classList.remove('hidden');
+            console.log('salesTab hidden class removed');
             updateActiveNav('sales');
             loadSalesData();
         }
@@ -1201,7 +1199,7 @@
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(tab => {
                 if (tab.id !== 'dashboardTab') {
-                    tab.style.display = 'none';
+                    tab.classList.add('hidden');
                 }
             });
         }
