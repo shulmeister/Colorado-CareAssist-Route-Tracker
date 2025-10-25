@@ -690,7 +690,7 @@ async def fix_visit_data():
             logger.info(f"Deleted {deleted_count} existing visits")
             
             # Read complete visit data from file
-            csv_file_path = "/Users/jasonshulman/Desktop/bizcard_simple_oauth_tesseract_PREFILLED/Visit Tracker/complete_visits_data.csv"
+            csv_file_path = "complete_visits_data.csv"
             try:
                 with open(csv_file_path, 'r', encoding='utf-8') as file:
                     csv_data = file.read()
