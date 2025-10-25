@@ -1211,7 +1211,6 @@
                 
                 const visits = await response.json();
                 console.log('Visits data received:', visits.length, 'visits');
-                console.log('First visit sample:', visits[0]);
 
                 const tbody = document.getElementById('visitsList');
                 tbody.innerHTML = '';
@@ -1224,7 +1223,7 @@
                 visits.forEach(visit => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${new Date(visit.visit_date).toLocaleDateString()}</td>
+                        <td>${visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : 'N/A'}</td>
                         <td>${visit.business_name || 'N/A'}</td>
                         <td>${visit.address || 'N/A'}</td>
                         <td>${visit.city || 'N/A'}</td>
@@ -1256,7 +1255,6 @@
                 
                 const sales = await response.json();
                 console.log('Sales data received:', sales.length, 'sales');
-                console.log('First sale sample:', sales[0]);
 
                 const tbody = document.getElementById('salesList');
                 tbody.innerHTML = '';
@@ -1272,7 +1270,7 @@
                         <td>${sale.client_name || 'N/A'}</td>
                         <td>$${sale.bonus_amount ? sale.bonus_amount.toLocaleString() : '0'}</td>
                         <td>${sale.commission_paid ? '✅ Yes' : '❌ No'}</td>
-                        <td>${new Date(sale.start_date).toLocaleDateString()}</td>
+                        <td>${sale.start_date ? new Date(sale.start_date).toLocaleDateString() : 'N/A'}</td>
                         <td>${sale.wellsky_status || 'N/A'}</td>
                         <td>${sale.status || 'N/A'}</td>
                     `;
