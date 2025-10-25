@@ -1165,15 +1165,23 @@
         }
 
         function showVisitsTab() {
+            console.log('showVisitsTab called');
             hideAllTabs();
-            document.getElementById('visitsTab').style.display = 'block';
+            const visitsTab = document.getElementById('visitsTab');
+            console.log('visitsTab element:', visitsTab);
+            visitsTab.style.display = 'block';
+            console.log('visitsTab display set to block');
             updateActiveNav('visits');
             loadVisitsData();
         }
 
         function showSalesTab() {
+            console.log('showSalesTab called');
             hideAllTabs();
-            document.getElementById('salesTab').style.display = 'block';
+            const salesTab = document.getElementById('salesTab');
+            console.log('salesTab element:', salesTab);
+            salesTab.style.display = 'block';
+            console.log('salesTab display set to block');
             updateActiveNav('sales');
             loadSalesData();
         }
