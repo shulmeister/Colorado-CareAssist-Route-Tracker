@@ -1090,7 +1090,11 @@
             } catch (error) {
                 console.error('Upload error:', error);
                 uploadStatus.className = 'upload-status error';
-                uploadStatus.innerHTML = `❌ Upload failed: ${error.message}`;
+                let errorMessage = error.message;
+                if (errorMessage.includes('HEIC') || errorMessage.includes('heic')) {
+                    errorMessage = 'Unable to process HEIC file. Please convert the image to JPEG or PNG format and try again.';
+                }
+                uploadStatus.innerHTML = `❌ Upload failed: ${errorMessage}`;
             }
         }
 

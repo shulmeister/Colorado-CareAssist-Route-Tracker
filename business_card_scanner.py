@@ -79,7 +79,9 @@ class BusinessCardScanner:
                         logger.info(f"Successfully opened HEIC via pyheif: {image.mode}, size: {image.size}")
                     except Exception as pyheif_error:
                         logger.error(f"Failed to open HEIC via pyheif: {str(pyheif_error)}")
-                        raise e
+                        # Last resort: return friendly error message
+                        logger.error("HEIC file could not be processed. Please try converting to JPEG/PNG first.")
+                        raise Exception("Unable to process HEIC file. Please convert the image to JPEG or PNG format and try again.")
             
             # Convert to RGB if necessary (handles HEIC, RGBA, etc.)
             if image.mode not in ['RGB', 'L']:
