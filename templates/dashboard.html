@@ -701,8 +701,9 @@
                         </div>
                         <div class="file-type">
                             <h4>🖼️ Image Files</h4>
-                            <p class="extensions">.jpg, .jpeg, .png</p>
+                            <p class="extensions">.jpg, .jpeg, .png, .heic</p>
                             <p>Business cards</p>
+                            <p>iPhone photos (HEIC)</p>
                             <p>Contact information</p>
                         </div>
                     </div>
@@ -1194,6 +1195,8 @@
             console.log('visitsTab element:', visitsTab);
             visitsTab.classList.remove('hidden');
             console.log('visitsTab hidden class removed');
+            console.log('visitsTab display style:', visitsTab.style.display);
+            console.log('visitsTab computed style:', window.getComputedStyle(visitsTab).display);
             updateActiveNav('visits');
             loadVisitsData();
         }
