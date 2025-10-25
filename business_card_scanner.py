@@ -153,6 +153,10 @@ class BusinessCardScanner:
             else:
                 contact['first_name'] = name.strip()
         
+        # STEP 3: Extract company from text if no email-derived company
+        if not contact['company']:
+            contact['company'] = self._extract_company(text)
+        
         return contact
     
     def _extract_name(self, text: str) -> Optional[str]:
@@ -221,6 +225,41 @@ class BusinessCardScanner:
             return False
         
         return True
+    
+    def _extract_company(self, text: str) -> Optional[str]:
+        """Extract company name from OCR text"""
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        if not lines:
+            return None
+        
+        # Look for company name patterns in first few lines
+        for line in lines[:5]:
+            # Skip if it looks like a person's name
+            if self._looks_like_name(line):
+                continue
+            
+            # Skip if it contains common non-company patterns
+            if any(word in line.lower() for word in ['ph:', 'fax:', 'your', 'source', 'medical providers']):
+                continue
+            
+            # Skip if it's an address pattern
+            if re.search(r'\d+.*(st|ave|rd|blvd|street|avenue)', line.lower()):
+                continue
+            
+            # Skip if it's a phone number
+            if re.search(r'\d{3}-\d{3}-\d{4}', line):
+                continue
+            
+            # Skip if it's a website URL
+            if '.com' in line.lower() or '.org' in line.lower():
+                continue
+            
+            # If line looks like a company name, return it
+            if len(line) > 5 and len(line) < 50:
+                return line
+        
+        return None
     
     def validate_contact(self, contact: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and clean ONLY essential contact information"""
