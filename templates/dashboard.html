@@ -1190,13 +1190,17 @@
             console.log('showVisitsTab called');
             hideAllTabs();
             // Hide the main dashboard
-            document.getElementById('dashboardTab').classList.add('hidden');
+            const dashboardTab = document.getElementById('dashboardTab');
+            dashboardTab.classList.add('hidden');
+            console.log('Dashboard hidden, classList:', dashboardTab.classList.toString());
+            
             const visitsTab = document.getElementById('visitsTab');
             console.log('visitsTab element:', visitsTab);
             visitsTab.classList.remove('hidden');
             console.log('visitsTab hidden class removed');
             console.log('visitsTab display style:', visitsTab.style.display);
             console.log('visitsTab computed style:', window.getComputedStyle(visitsTab).display);
+            console.log('visitsTab classList:', visitsTab.classList.toString());
             updateActiveNav('visits');
             loadVisitsData();
         }
@@ -1205,11 +1209,15 @@
             console.log('showSalesTab called');
             hideAllTabs();
             // Hide the main dashboard
-            document.getElementById('dashboardTab').classList.add('hidden');
+            const dashboardTab = document.getElementById('dashboardTab');
+            dashboardTab.classList.add('hidden');
+            console.log('Dashboard hidden, classList:', dashboardTab.classList.toString());
+            
             const salesTab = document.getElementById('salesTab');
             console.log('salesTab element:', salesTab);
             salesTab.classList.remove('hidden');
             console.log('salesTab hidden class removed');
+            console.log('salesTab classList:', salesTab.classList.toString());
             updateActiveNav('sales');
             loadSalesData();
         }
