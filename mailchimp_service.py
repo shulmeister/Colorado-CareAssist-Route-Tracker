@@ -37,18 +37,36 @@ class MailchimpService:
                     "error": "Email address is required for Mailchimp export"
                 }
             
-            # Mailchimp contact data structure
+            # Mailchimp contact data structure - only include fields with valid data
+            merge_fields = {}
+            
+            # Add fields only if they have valid data
+            if contact_info.get('first_name'):
+                merge_fields['FNAME'] = contact_info['first_name']
+            if contact_info.get('last_name'):
+                merge_fields['LNAME'] = contact_info['last_name']
+            if contact_info.get('company'):
+                merge_fields['COMPANY'] = contact_info['company']
+            
+            # Only add phone if it's a valid format
+            phone = contact_info.get('phone', '').strip()
+            if phone and len(phone) >= 10:
+                merge_fields['PHONE'] = phone
+            
+            # Only add address if it's substantial
+            address = contact_info.get('address', '').strip()
+            if address and len(address) > 10:
+                merge_fields['ADDRESS'] = address
+            
+            # Only add website if it looks like a URL
+            website = contact_info.get('website', '').strip()
+            if website and ('.' in website and len(website) > 5):
+                merge_fields['WEBSITE'] = website
+            
             data = {
                 "email_address": email,
                 "status": "subscribed",
-                "merge_fields": {
-                    "FNAME": contact_info.get('first_name', ''),
-                    "LNAME": contact_info.get('last_name', ''),
-                    "PHONE": contact_info.get('phone', ''),
-                    "COMPANY": contact_info.get('company', ''),
-                    "ADDRESS": contact_info.get('address', ''),
-                    "WEBSITE": contact_info.get('website', '')
-                }
+                "merge_fields": merge_fields
             }
             
             # Add tags if available
