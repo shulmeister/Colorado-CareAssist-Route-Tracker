@@ -23,10 +23,20 @@ class BusinessCardScanner:
         try:
             # Open image with explicit format handling
             image_buffer = io.BytesIO(image_content)
-            image = Image.open(image_buffer)
+            
+            # Try to open the image
+            try:
+                image = Image.open(image_buffer)
+                logger.info(f"Successfully opened image: {image.format}, mode: {image.mode}, size: {image.size}")
+            except Exception as e:
+                logger.error(f"Failed to open image: {str(e)}")
+                # Try to reset buffer and open again
+                image_buffer.seek(0)
+                image = Image.open(image_buffer)
             
             # Convert to RGB if necessary (handles HEIC, RGBA, etc.)
             if image.mode not in ['RGB', 'L']:
+                logger.info(f"Converting image from {image.mode} to RGB")
                 image = image.convert('RGB')
             
             # Extract text using OCR
