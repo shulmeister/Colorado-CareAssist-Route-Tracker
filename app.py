@@ -689,8 +689,16 @@ async def fix_visit_data():
             db.commit()
             logger.info(f"Deleted {deleted_count} existing visits")
             
-            # Import real visit data with enhanced business names
-            csv_data = """Stop,Business Name,Location,City,Notes,Date,Facility Type,Follow-up Needed,Lead,Client
+            # Read complete visit data from file
+            csv_file_path = "/Users/jasonshulman/Desktop/bizcard_simple_oauth_tesseract_PREFILLED/Visit Tracker/complete_visits_data.csv"
+            try:
+                with open(csv_file_path, 'r', encoding='utf-8') as file:
+                    csv_data = file.read()
+                logger.info(f"Successfully read complete CSV data from file")
+            except FileNotFoundError:
+                logger.warning("Complete CSV file not found, using fallback data")
+                # Fallback to embedded data if file not found
+                csv_data = """Stop,Business Name,Location,City,Notes,Date,Facility Type,Follow-up Needed,Lead,Client
 1,,1630 E Cheyenne Mountain Blvd,Colorado Springs,Cookie stop,2025-03-06 00:00:00,,,,
 2,Colorado Springs Orthopaedic Group,1259 Lake Plaza Dr Unit 100,Colorado Springs,,2025-03-06 00:00:00,,,,
 3,Summit Home Health Care,1160 Lake Plaza Dr Ste 255,Colorado Springs,,2025-03-06 00:00:00,,,,
