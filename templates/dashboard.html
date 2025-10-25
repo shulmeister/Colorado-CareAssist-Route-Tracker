@@ -1180,13 +1180,16 @@
         // Tab switching functions
         function showDashboardTab() {
             hideAllTabs();
-            document.getElementById('dashboardTab').style.display = 'block';
+            // Show the main dashboard
+            document.getElementById('dashboardTab').classList.remove('hidden');
             updateActiveNav('dashboard');
         }
 
         function showVisitsTab() {
             console.log('showVisitsTab called');
             hideAllTabs();
+            // Hide the main dashboard
+            document.getElementById('dashboardTab').classList.add('hidden');
             const visitsTab = document.getElementById('visitsTab');
             console.log('visitsTab element:', visitsTab);
             visitsTab.classList.remove('hidden');
@@ -1198,6 +1201,8 @@
         function showSalesTab() {
             console.log('showSalesTab called');
             hideAllTabs();
+            // Hide the main dashboard
+            document.getElementById('dashboardTab').classList.add('hidden');
             const salesTab = document.getElementById('salesTab');
             console.log('salesTab element:', salesTab);
             salesTab.classList.remove('hidden');
@@ -1207,12 +1212,10 @@
         }
 
         function hideAllTabs() {
-            // Hide all tab content except the main dashboard
+            // Hide all tab content
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(tab => {
-                if (tab.id !== 'dashboardTab') {
-                    tab.classList.add('hidden');
-                }
+                tab.classList.add('hidden');
             });
         }
 
