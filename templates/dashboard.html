@@ -1602,6 +1602,9 @@
                 console.log('Mailchimp contacts response status:', response.status);
                 
                 if (!response.ok) {
+                    if (response.status === 503) {
+                        throw new Error('Mailchimp service is temporarily unavailable. Please try again in a few minutes.');
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
@@ -1623,7 +1626,14 @@
                 tbody.innerHTML = '';
 
                 if (contacts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8;">No contacts found in Mailchimp referral source segment</td></tr>';
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #94a3b8;">
+                                No contacts found in Mailchimp referral source segment.<br>
+                                <small style="color: #64748b;">Business cards you scan will automatically be added here.</small>
+                            </td>
+                        </tr>
+                    `;
                     return;
                 }
 
@@ -1651,7 +1661,26 @@
             } catch (error) {
                 console.error('Error loading Mailchimp contacts:', error);
                 const tbody = document.getElementById('contactsList');
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading Mailchimp contacts: ' + error.message + '</td></tr>';
+                
+                // Show more user-friendly error messages
+                let errorMessage = 'Error loading Mailchimp contacts: ' + error.message;
+                if (error.message.includes('503') || error.message.includes('unavailable')) {
+                    errorMessage = `
+                        <div style="text-align: center; color: #f59e0b;">
+                            <strong>Mailchimp Service Temporarily Unavailable</strong><br>
+                            <small style="color: #94a3b8;">Please try again in a few minutes. Your business card contacts will sync automatically once the service is restored.</small>
+                        </div>
+                    `;
+                } else if (error.message.includes('not configured')) {
+                    errorMessage = `
+                        <div style="text-align: center; color: #ef4444;">
+                            <strong>Mailchimp Not Configured</strong><br>
+                            <small style="color: #94a3b8;">Please configure your Mailchimp API credentials to sync contacts.</small>
+                        </div>
+                    `;
+                }
+                
+                tbody.innerHTML = `<tr><td colspan="6">${errorMessage}</td></tr>`;
             }
         }
 

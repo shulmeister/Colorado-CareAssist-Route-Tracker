@@ -140,7 +140,8 @@ class MailchimpService:
             }
         
         try:
-            # Get contacts with "Business Card" tag (referral source)
+            # First, let's try to get all members and filter by tags client-side
+            # This is more reliable than using the tags parameter
             url = f"{self.base_url}/lists/{self.list_id}/members"
             headers = {
                 'Authorization': f'Bearer {self.api_key}',
@@ -148,31 +149,53 @@ class MailchimpService:
             }
             
             params = {
-                'tags': 'Business Card',
-                'count': 1000  # Get up to 1000 contacts
+                'count': 1000,  # Get up to 1000 contacts
+                'status': 'subscribed'  # Only get subscribed members
             }
             
-            response = requests.get(url, headers=headers, params=params)
+            logger.info(f"Making Mailchimp API request to: {url}")
+            logger.info(f"Headers: {headers}")
+            logger.info(f"Params: {params}")
+            
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+            
+            logger.info(f"Mailchimp API response status: {response.status_code}")
+            logger.info(f"Mailchimp API response headers: {dict(response.headers)}")
             
             if response.status_code == 200:
                 data = response.json()
-                contacts = []
+                logger.info(f"Mailchimp API response data keys: {list(data.keys())}")
                 
-                for member in data.get('members', []):
-                    contact = {
-                        'mailchimp_id': member.get('id'),
-                        'email': member.get('email_address'),
-                        'first_name': member.get('merge_fields', {}).get('FNAME', ''),
-                        'last_name': member.get('merge_fields', {}).get('LNAME', ''),
-                        'company': member.get('merge_fields', {}).get('COMPANY', ''),
-                        'phone': member.get('merge_fields', {}).get('PHONE', ''),
-                        'address': member.get('merge_fields', {}).get('ADDRESS', ''),
-                        'website': member.get('merge_fields', {}).get('WEBSITE', ''),
-                        'status': member.get('status'),
-                        'date_added': member.get('timestamp_opt'),
-                        'tags': member.get('tags', [])
-                    }
-                    contacts.append(contact)
+                contacts = []
+                all_members = data.get('members', [])
+                logger.info(f"Total members returned: {len(all_members)}")
+                
+                # Filter members who have "Business Card" tag
+                for member in all_members:
+                    member_tags = member.get('tags', [])
+                    logger.info(f"Member {member.get('email_address')} tags: {member_tags}")
+                    
+                    # Check if member has "Business Card" tag
+                    has_business_card_tag = any(tag.get('name') == 'Business Card' for tag in member_tags)
+                    
+                    if has_business_card_tag:
+                        contact = {
+                            'mailchimp_id': member.get('id'),
+                            'email': member.get('email_address'),
+                            'first_name': member.get('merge_fields', {}).get('FNAME', ''),
+                            'last_name': member.get('merge_fields', {}).get('LNAME', ''),
+                            'company': member.get('merge_fields', {}).get('COMPANY', ''),
+                            'phone': member.get('merge_fields', {}).get('PHONE', ''),
+                            'address': member.get('merge_fields', {}).get('ADDRESS', ''),
+                            'website': member.get('merge_fields', {}).get('WEBSITE', ''),
+                            'status': member.get('status'),
+                            'date_added': member.get('timestamp_opt'),
+                            'tags': member_tags
+                        }
+                        contacts.append(contact)
+                        logger.info(f"Added contact: {contact['email']}")
+                
+                logger.info(f"Found {len(contacts)} contacts with Business Card tag")
                 
                 return {
                     "success": True,
@@ -180,11 +203,25 @@ class MailchimpService:
                     "total": len(contacts)
                 }
             else:
+                error_text = response.text
+                logger.error(f"Mailchimp API error: {response.status_code} - {error_text}")
                 return {
                     "success": False,
-                    "error": f"Mailchimp API error: {response.status_code} - {response.text}"
+                    "error": f"Mailchimp API error: {response.status_code} - {error_text}"
                 }
                 
+        except requests.exceptions.Timeout:
+            logger.error("Mailchimp API request timed out")
+            return {
+                "success": False,
+                "error": "Mailchimp API request timed out. Please try again."
+            }
+        except requests.exceptions.ConnectionError:
+            logger.error("Mailchimp API connection error")
+            return {
+                "success": False,
+                "error": "Cannot connect to Mailchimp API. Please check your internet connection."
+            }
         except Exception as e:
             logger.error(f"Error getting contacts from Mailchimp: {str(e)}")
             return {
