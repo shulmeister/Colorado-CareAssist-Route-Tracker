@@ -46,7 +46,7 @@ class BusinessCardScanner:
             logger.error(f"Error scanning business card: {str(e)}")
             return {
                 "success": False,
-                "error": str(e),
+                "error": f"Failed to process image: {str(e)}",
                 "contact": None
             }
     

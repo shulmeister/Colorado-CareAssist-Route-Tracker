@@ -186,32 +186,38 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
         else:
             # Handle business card image (including HEIC)
             logger.info(f"Processing business card image: {file.filename}")
-            result = business_card_scanner.scan_image(content)
-            
-            if not result.get("success", False):
-                error_msg = result.get("error", "Failed to scan business card")
-                logger.error(f"Business card scanning failed: {error_msg}")
-                raise HTTPException(status_code=400, detail=error_msg)
-            
-            # Validate contact information
-            contact = business_card_scanner.validate_contact(result["contact"])
-            
-            # Export to Mailchimp if configured
-            mailchimp_result = None
-            mailchimp_service = MailchimpService()
-            if mailchimp_service.enabled and contact.get('email'):
-                mailchimp_result = mailchimp_service.add_contact(contact)
-                logger.info(f"Mailchimp export result: {mailchimp_result}")
-            
-            logger.info(f"Successfully scanned business card: {contact.get('name', 'Unknown')}")
-            return JSONResponse({
-                "success": True,
-                "filename": file.filename,
-                "type": "business_card",
-                "contact": contact,
-                "extracted_text": result.get("raw_text", ""),
-                "mailchimp_export": mailchimp_result
-            })
+            try:
+                result = business_card_scanner.scan_image(content)
+                
+                if not result.get("success", False):
+                    error_msg = result.get("error", "Failed to scan business card")
+                    logger.error(f"Business card scanning failed: {error_msg}")
+                    raise HTTPException(status_code=400, detail=error_msg)
+                
+                # Validate contact information
+                contact = business_card_scanner.validate_contact(result["contact"])
+                
+                # Export to Mailchimp if configured
+                mailchimp_result = None
+                mailchimp_service = MailchimpService()
+                if mailchimp_service.enabled and contact.get('email'):
+                    mailchimp_result = mailchimp_service.add_contact(contact)
+                    logger.info(f"Mailchimp export result: {mailchimp_result}")
+                
+                logger.info(f"Successfully scanned business card: {contact.get('name', 'Unknown')}")
+                return JSONResponse({
+                    "success": True,
+                    "filename": file.filename,
+                    "type": "business_card",
+                    "contact": contact,
+                    "extracted_text": result.get("raw_text", ""),
+                    "mailchimp_export": mailchimp_result
+                })
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error processing business card image: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
         
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}")
