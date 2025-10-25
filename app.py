@@ -501,6 +501,39 @@ async def export_contact_to_mailchimp(contact_data: Dict[str, Any], current_user
         logger.error(f"Error exporting contact to Mailchimp: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error exporting to Mailchimp: {str(e)}")
 
+@app.get("/api/mailchimp/contacts")
+async def get_mailchimp_contacts(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get all contacts from Mailchimp referral source segment"""
+    try:
+        mailchimp_service = MailchimpService()
+        result = mailchimp_service.get_contacts_from_referral_segment()
+        return JSONResponse(result)
+    except Exception as e:
+        logger.error(f"Error getting Mailchimp contacts: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting Mailchimp contacts: {str(e)}")
+
+@app.put("/api/mailchimp/contacts/{mailchimp_id}")
+async def update_mailchimp_contact(mailchimp_id: str, contact_data: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Update a contact in Mailchimp"""
+    try:
+        mailchimp_service = MailchimpService()
+        result = mailchimp_service.update_contact(mailchimp_id, contact_data)
+        return JSONResponse(result)
+    except Exception as e:
+        logger.error(f"Error updating Mailchimp contact: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error updating Mailchimp contact: {str(e)}")
+
+@app.delete("/api/mailchimp/contacts/{mailchimp_id}")
+async def delete_mailchimp_contact(mailchimp_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Delete a contact from Mailchimp"""
+    try:
+        mailchimp_service = MailchimpService()
+        result = mailchimp_service.delete_contact(mailchimp_id)
+        return JSONResponse(result)
+    except Exception as e:
+        logger.error(f"Error deleting Mailchimp contact: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting Mailchimp contact: {str(e)}")
+
 @app.get("/api/dashboard/summary")
 async def get_dashboard_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get dashboard summary statistics"""

@@ -877,15 +877,16 @@
             <!-- Contacts Tab Content -->
             <div id="contactsTab" class="tab-content hidden">
                 <div class="dashboard-header">
-                    <h1 class="dashboard-title">Business Card Contacts</h1>
-                    <p class="dashboard-subtitle">Saved contact information from business cards</p>
+                    <h1 class="dashboard-title">Referral Source Contacts</h1>
+                    <p class="dashboard-subtitle">Business card contacts synced with Mailchimp referral source segment</p>
                 </div>
 
                 <div class="table-container">
                     <div class="search-container">
                         <input type="text" id="contactsSearch" placeholder="Search contacts by name, company, or email..." class="search-input">
+                        <button id="syncMailchimpBtn" class="btn btn-primary">Sync with Mailchimp</button>
                     </div>
-                    <h3>Saved Contacts</h3>
+                    <h3>Mailchimp Referral Source Contacts</h3>
                     <table class="table">
                         <thead>
                             <tr>
@@ -893,12 +894,13 @@
                                 <th>Company</th>
                                 <th>Email</th>
                                 <th>Phone</th>
-                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="contactsList">
                             <tr>
-                                <td colspan="5" style="text-align: center; color: #94a3b8;">Loading...</td>
+                                <td colspan="6" style="text-align: center; color: #94a3b8;">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1592,44 +1594,238 @@
         // Load contacts data
         async function loadContactsData() {
             try {
-                console.log('Loading contacts data...');
-                const response = await fetch('/api/contacts', {
+                console.log('Loading Mailchimp contacts data...');
+                const response = await fetch('/api/mailchimp/contacts', {
                     credentials: 'include'
                 });
                 
-                console.log('Contacts response status:', response.status);
+                console.log('Mailchimp contacts response status:', response.status);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const contacts = await response.json();
-                console.log('Contacts data received:', contacts.length, 'contacts');
+                const result = await response.json();
+                console.log('Mailchimp contacts result:', result);
                 
-                // Store contacts globally for saving
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to load Mailchimp contacts');
+                }
+                
+                const contacts = result.contacts || [];
+                console.log('Mailchimp contacts data received:', contacts.length, 'contacts');
+                
+                // Store contacts globally
                 currentContacts = contacts;
 
                 const tbody = document.getElementById('contactsList');
                 console.log('Found contacts tbody:', tbody);
                 tbody.innerHTML = '';
 
+                if (contacts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8;">No contacts found in Mailchimp referral source segment</td></tr>';
+                    return;
+                }
+
                 contacts.forEach(contact => {
                     const row = document.createElement('tr');
+                    const fullName = `${contact.first_name || ''} ${contact.last_name || ''}`.trim() || 'N/A';
+                    const statusBadge = contact.status === 'subscribed' ? 
+                        '<span style="color: #10b981; font-weight: 600;">✓ Subscribed</span>' : 
+                        `<span style="color: #f59e0b;">${contact.status || 'Unknown'}</span>`;
+                    
                     row.innerHTML = `
-                        <td>${contact.name || 'N/A'}</td>
+                        <td>${fullName}</td>
                         <td>${contact.company || 'N/A'}</td>
                         <td>${contact.email || 'N/A'}</td>
                         <td>${contact.phone || 'N/A'}</td>
-                        <td>${contact.created_at ? new Date(contact.created_at).toLocaleDateString() : 'N/A'}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="editContact('${contact.mailchimp_id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteContact('${contact.mailchimp_id}', '${contact.email}')">Delete</button>
+                        </td>
                     `;
                     tbody.appendChild(row);
                 });
                 console.log('Added', contacts.length, 'rows to contacts table');
             } catch (error) {
-                console.error('Error loading contacts:', error);
+                console.error('Error loading Mailchimp contacts:', error);
                 const tbody = document.getElementById('contactsList');
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading contacts data</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">Error loading Mailchimp contacts: ' + error.message + '</td></tr>';
             }
+        }
+
+        async function syncWithMailchimp() {
+            try {
+                const syncBtn = document.getElementById('syncMailchimpBtn');
+                syncBtn.textContent = 'Syncing...';
+                syncBtn.disabled = true;
+                
+                await loadContactsData();
+                
+                syncBtn.textContent = 'Sync with Mailchimp';
+                syncBtn.disabled = false;
+                
+                // Show success message
+                showNotification('Contacts synced with Mailchimp successfully!', 'success');
+            } catch (error) {
+                console.error('Error syncing with Mailchimp:', error);
+                showNotification('Error syncing with Mailchimp: ' + error.message, 'error');
+                
+                const syncBtn = document.getElementById('syncMailchimpBtn');
+                syncBtn.textContent = 'Sync with Mailchimp';
+                syncBtn.disabled = false;
+            }
+        }
+
+        function editContact(mailchimpId) {
+            const contact = currentContacts.find(c => c.mailchimp_id === mailchimpId);
+            if (!contact) {
+                showNotification('Contact not found', 'error');
+                return;
+            }
+
+            // Create edit form
+            const editForm = document.createElement('div');
+            editForm.style.cssText = `
+                position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+                padding: 24px; z-index: 1000; min-width: 400px; max-width: 600px;
+            `;
+            
+            editForm.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #f1f5f9;">Edit Contact</h3>
+                <form id="editContactForm">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">First Name</label>
+                        <input type="text" id="editFirstName" value="${contact.first_name || ''}" 
+                               style="width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9;">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">Last Name</label>
+                        <input type="text" id="editLastName" value="${contact.last_name || ''}" 
+                               style="width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9;">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">Company</label>
+                        <input type="text" id="editCompany" value="${contact.company || ''}" 
+                               style="width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9;">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">Phone</label>
+                        <input type="text" id="editPhone" value="${contact.phone || ''}" 
+                               style="width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">Address</label>
+                        <input type="text" id="editAddress" value="${contact.address || ''}" 
+                               style="width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9;">
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button type="button" onclick="closeEditForm()" 
+                                style="padding: 8px 16px; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                        <button type="submit" 
+                                style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Save Changes</button>
+                    </div>
+                </form>
+            `;
+            
+            // Add backdrop
+            const backdrop = document.createElement('div');
+            backdrop.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.5); z-index: 999;
+            `;
+            backdrop.onclick = closeEditForm;
+            
+            document.body.appendChild(backdrop);
+            document.body.appendChild(editForm);
+            
+            // Handle form submission
+            document.getElementById('editContactForm').onsubmit = async (e) => {
+                e.preventDefault();
+                
+                const updatedContact = {
+                    first_name: document.getElementById('editFirstName').value.trim(),
+                    last_name: document.getElementById('editLastName').value.trim(),
+                    company: document.getElementById('editCompany').value.trim(),
+                    phone: document.getElementById('editPhone').value.trim(),
+                    address: document.getElementById('editAddress').value.trim(),
+                    tags: ['Business Card'] // Maintain referral source tag
+                };
+                
+                try {
+                    const response = await fetch(`/api/mailchimp/contacts/${mailchimpId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(updatedContact)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showNotification('Contact updated successfully!', 'success');
+                        closeEditForm();
+                        await loadContactsData(); // Refresh the list
+                    } else {
+                        showNotification('Error updating contact: ' + result.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error updating contact:', error);
+                    showNotification('Error updating contact: ' + error.message, 'error');
+                }
+            };
+        }
+
+        function closeEditForm() {
+            const backdrop = document.querySelector('div[style*="position: fixed"][style*="background: rgba(0, 0, 0, 0.5)"]');
+            const editForm = document.getElementById('editContactForm');
+            
+            if (backdrop) backdrop.remove();
+            if (editForm) editForm.closest('div').remove();
+        }
+
+        async function deleteContact(mailchimpId, email) {
+            if (!confirm(`Are you sure you want to delete ${email} from Mailchimp? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/mailchimp/contacts/${mailchimpId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('Contact deleted successfully!', 'success');
+                    await loadContactsData(); // Refresh the list
+                } else {
+                    showNotification('Error deleting contact: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting contact:', error);
+                showNotification('Error deleting contact: ' + error.message, 'error');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed; top: 20px; right: 20px; z-index: 1001;
+                padding: 12px 20px; border-radius: 8px; color: white; font-weight: 500;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
 
         // Search functionality
@@ -1753,6 +1949,12 @@
                 const downloadBtn = document.getElementById('downloadVisitsCsv');
                 if (downloadBtn) {
                     downloadBtn.addEventListener('click', downloadVisitsCSV);
+                }
+                
+                // Add Mailchimp sync event listener
+                const syncBtn = document.getElementById('syncMailchimpBtn');
+                if (syncBtn) {
+                    syncBtn.addEventListener('click', syncWithMailchimp);
                 }
             });
     </script>
