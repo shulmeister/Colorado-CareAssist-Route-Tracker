@@ -561,8 +561,8 @@
             <div class="sidebar-header">
                 <div class="sidebar-title">Sales Dashboard</div>
                 <div class="sidebar-subtitle">Colorado CareAssist</div>
-            </div>
-            
+        </div>
+
             <nav class="nav-menu">
                 <a href="#dashboard" class="nav-item active" onclick="showDashboardTab()">
                     <span class="nav-icon">📊</span>
@@ -618,7 +618,7 @@
                     </div>
                     <div class="kpi-value" id="totalVisits">-</div>
                     <div class="kpi-change neutral" id="visitsChange">Loading...</div>
-                </div>
+                    </div>
 
                 <div class="kpi-card">
                     <div class="kpi-header">
@@ -627,7 +627,7 @@
                     </div>
                     <div class="kpi-value" id="totalCosts">-</div>
                     <div class="kpi-change neutral" id="costsChange">Loading...</div>
-                </div>
+                    </div>
 
                 <div class="kpi-card">
                     <div class="kpi-header">
@@ -636,7 +636,7 @@
                     </div>
                     <div class="kpi-value" id="totalBonusesEarned">-</div>
                     <div class="kpi-change neutral" id="bonusesChange">Loading...</div>
-                </div>
+                    </div>
 
                 <div class="kpi-card">
                     <div class="kpi-header">
@@ -645,7 +645,7 @@
                     </div>
                     <div class="kpi-value" id="costPerVisit">-</div>
                     <div class="kpi-change neutral" id="cpvChange">Loading...</div>
-                </div>
+                    </div>
 
                 <div class="kpi-card">
                     <div class="kpi-header">
@@ -724,50 +724,37 @@
 
                 <div id="uploadStatus" class="upload-status" style="display: none;"></div>
                 
-                <!-- Working Biz Card Scanner Link -->
-                <div style="margin-top: 20px; padding: 15px; background: #0f172a; border-radius: 8px; border: 1px solid #334155;">
-                    <h4 style="color: #f1f5f9; margin-bottom: 10px;">🔧 Alternative Biz Card Scanner</h4>
-                    <p style="color: #94a3b8; margin-bottom: 15px;">If HEIC uploads aren't working, use our dedicated biz card scanner:</p>
-                    <a href="https://github.com/shulmeister/bizcard-scanner" target="_blank" 
-                       style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 500;">
-                        📇 Open Biz Card Scanner
-                    </a>
-                    <p style="color: #64748b; font-size: 12px; margin-top: 10px;">
-                        This scanner handles HEIC files perfectly and exports directly to Mailchimp.
-                    </p>
-                </div>
-                
                 <div id="resultsContainer" style="margin-top: 20px;"></div>
                 
                 <button id="appendBtn" class="btn" style="display: none; margin-top: 16px;">Save Data</button>
-            </div>
+                    </div>
 
-            <!-- Recent Activity -->
-            <div class="table-container">
+                    <!-- Recent Activity -->
+                        <div class="table-container">
                 <h3>Recent Activity</h3>
                 <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recentActivityList">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentActivityList">
                         <tr>
                             <td colspan="3" style="text-align: center; color: #94a3b8;">Loading...</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-            </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
             <!-- Visits Tab Content -->
             <div id="visitsTab" class="tab-content hidden">
                 <div class="dashboard-header">
                     <h1 class="dashboard-title">Daily Visits Summary</h1>
                     <p class="dashboard-subtitle">Visit tracking and facility data</p>
-                </div>
+            </div>
 
                 <div class="table-container">
                     <h3>All Visits</h3>
@@ -908,11 +895,11 @@
                     data: {
                         labels: costsData.map(item => item.month),
                         datasets: [{
-                            label: 'Costs',
+                                label: 'Costs',
                             data: costsData.map(item => item.costs),
                             backgroundColor: '#3b82f6',
                             borderColor: '#2563eb',
-                            borderWidth: 1
+                                borderWidth: 1
                         }]
                     },
                     options: {
@@ -954,7 +941,7 @@
                     credentials: 'include'
                 });
                 const facilitiesData = await facilitiesResponse.json();
-                
+
                 const facilitiesCtx = document.getElementById('facilitiesChart').getContext('2d');
                 
                 // Destroy existing chart if it exists
@@ -1365,7 +1352,7 @@
                 
                 if (response.ok) {
                     window.location.href = '/auth/login';
-                } else {
+            } else {
                     console.error('Logout failed');
                 }
             } catch (error) {

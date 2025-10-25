@@ -38,7 +38,9 @@ class BusinessCardScanner:
                 try:
                     logger.info("Attempting to open as HEIF image")
                     image_buffer.seek(0)
-                    heif_image = HeifImage(image_buffer)
+                    # Convert BytesIO to bytes for HeifImage
+                    heif_data = image_buffer.getvalue()
+                    heif_image = HeifImage(heif_data)
                     image = heif_image.to_pillow()
                     logger.info(f"Successfully opened HEIF image: {image.mode}, size: {image.size}")
                 except Exception as heif_error:
