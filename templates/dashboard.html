@@ -876,6 +876,12 @@
     </div>
 
     <script>
+        // Global variables to store current data
+        let currentVisits = [];
+        let currentSales = [];
+        let currentContacts = [];
+        let currentTimeEntry = null;
+
         // Global error suppression for browser extensions
         window.addEventListener('error', function(e) {
             if (e.message.includes('pageMenu') || e.message.includes('duplicate id')) {
@@ -1199,6 +1205,9 @@
                 appendBtn.textContent = 'Save Contact';
                 appendBtn.style.display = 'block';
             } else if (result.type === 'time_tracking') {
+                // Store time entry globally for saving
+                currentTimeEntry = result;
+                
                 resultsContainer.innerHTML = `
                     <div class="time-tracking-card">
                         <h4>⏰ Time Tracking Entry</h4>
@@ -1211,6 +1220,9 @@
             } else {
                 // Display MyWay route visits
                 if (result.visits && result.visits.length > 0) {
+                    // Store visits globally for saving
+                    currentVisits = result.visits;
+                    
                     let tableHtml = `
                         <div class="visits-table">
                             <h3>🚗 MyWay Route Visits</h3>
@@ -1457,6 +1469,9 @@
                 
                 const visits = await response.json();
                 console.log('Visits data received:', visits.length, 'visits');
+                
+                // Store visits globally for saving
+                currentVisits = visits;
 
                 const tbody = document.getElementById('visitsList');
                 console.log('Found visits tbody:', tbody);
@@ -1504,6 +1519,9 @@
                 
                 const sales = await response.json();
                 console.log('Sales data received:', sales.length, 'sales');
+                
+                // Store sales globally for saving
+                currentSales = sales;
 
                 const tbody = document.getElementById('salesList');
                 console.log('Found sales tbody:', tbody);
@@ -1551,6 +1569,9 @@
                 
                 const contacts = await response.json();
                 console.log('Contacts data received:', contacts.length, 'contacts');
+                
+                // Store contacts globally for saving
+                currentContacts = contacts;
 
                 const tbody = document.getElementById('contactsList');
                 console.log('Found contacts tbody:', tbody);
