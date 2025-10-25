@@ -4,6 +4,10 @@ import io
 import re
 from typing import Dict, Any, Optional
 import logging
+from pillow_heif import register_heif_opener
+
+# Register HEIF opener for HEIC files
+register_heif_opener()
 
 logger = logging.getLogger(__name__)
 

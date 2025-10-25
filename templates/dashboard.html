@@ -709,10 +709,11 @@
                 </div>
 
                 <div class="upload-area" id="uploadArea">
-                    <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" style="display: none;">
+                    <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" style="display: none;">
                     <div id="uploadText">
                         <h3>📁 Choose File or Drag & Drop</h3>
                         <p>Upload PDFs or images to process</p>
+                        <small>Supported: PDF, JPG, PNG, HEIC (iPhone photos)</small>
                     </div>
                 </div>
 
@@ -1092,6 +1093,19 @@
             
             if (result.type === 'business_card') {
                 const contact = result.contact;
+                const mailchimpStatus = result.mailchimp_export;
+                
+                let mailchimpMessage = '';
+                if (mailchimpStatus) {
+                    if (mailchimpStatus.success) {
+                        mailchimpMessage = `<div class="success-message" style="background: #10b981; color: white; padding: 8px; border-radius: 4px; margin: 8px 0;">✅ ${mailchimpStatus.message}</div>`;
+                    } else {
+                        mailchimpMessage = `<div class="error-message" style="background: #ef4444; color: white; padding: 8px; border-radius: 4px; margin: 8px 0;">❌ Mailchimp: ${mailchimpStatus.error}</div>`;
+                    }
+                } else {
+                    mailchimpMessage = '<div class="info-message" style="background: #3b82f6; color: white; padding: 8px; border-radius: 4px; margin: 8px 0;">ℹ️ Mailchimp not configured</div>';
+                }
+                
                 resultsContainer.innerHTML = `
                     <div class="contact-card">
                         <h4>📇 Business Card Contact</h4>
@@ -1102,6 +1116,7 @@
                         <p><strong>Email:</strong> ${contact.email || 'N/A'}</p>
                         <p><strong>Website:</strong> ${contact.website || 'N/A'}</p>
                         <p><strong>Address:</strong> ${contact.address || 'N/A'}</p>
+                        ${mailchimpMessage}
                         <details style="margin-top: 12px;">
                             <summary style="cursor: pointer; color: #94a3b8;">Raw extracted text</summary>
                             <pre style="margin-top: 8px; color: #94a3b8; font-size: 12px;">${result.extracted_text || 'No text extracted'}</pre>

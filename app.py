@@ -16,6 +16,7 @@ from models import Visit, TimeEntry, Contact, ActivityNote, FinancialEntry, Sale
 from analytics import AnalyticsEngine
 from migrate_data import GoogleSheetsMigrator
 from business_card_scanner import BusinessCardScanner
+from mailchimp_service import MailchimpService
 from auth import oauth_manager, get_current_user, get_current_user_optional
 from dotenv import load_dotenv
 
@@ -141,7 +142,7 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
     try:
         # Validate file type
         file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ''
-        allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png']
+        allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'heic', 'heif']
         
         if file_extension not in allowed_extensions:
             raise HTTPException(status_code=400, detail=f"Only {', '.join(allowed_extensions)} files are allowed")
@@ -183,7 +184,7 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
                     "count": len(visits)
                 })
         else:
-            # Handle business card image
+            # Handle business card image (including HEIC)
             logger.info(f"Processing business card image: {file.filename}")
             result = business_card_scanner.scan_image(content)
             
@@ -195,13 +196,21 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
             # Validate contact information
             contact = business_card_scanner.validate_contact(result["contact"])
             
+            # Export to Mailchimp if configured
+            mailchimp_result = None
+            mailchimp_service = MailchimpService()
+            if mailchimp_service.enabled and contact.get('email'):
+                mailchimp_result = mailchimp_service.add_contact(contact)
+                logger.info(f"Mailchimp export result: {mailchimp_result}")
+            
             logger.info(f"Successfully scanned business card: {contact.get('name', 'Unknown')}")
             return JSONResponse({
                 "success": True,
                 "filename": file.filename,
                 "type": "business_card",
                 "contact": contact,
-                "extracted_text": result.get("raw_text", "")
+                "extracted_text": result.get("raw_text", ""),
+                "mailchimp_export": mailchimp_result
             })
         
     except Exception as e:
@@ -298,6 +307,28 @@ async def append_to_sheet(request: Request, db: Session = Depends(get_db), curre
         raise HTTPException(status_code=500, detail=f"Error saving data: {str(e)}")
 
 # Dashboard API endpoints
+@app.get("/api/mailchimp/test")
+async def test_mailchimp_connection(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Test Mailchimp API connection"""
+    try:
+        mailchimp_service = MailchimpService()
+        result = mailchimp_service.test_connection()
+        return JSONResponse(result)
+    except Exception as e:
+        logger.error(f"Error testing Mailchimp connection: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error testing Mailchimp: {str(e)}")
+
+@app.post("/api/mailchimp/export")
+async def export_contact_to_mailchimp(contact_data: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Export a contact to Mailchimp"""
+    try:
+        mailchimp_service = MailchimpService()
+        result = mailchimp_service.add_contact(contact_data)
+        return JSONResponse(result)
+    except Exception as e:
+        logger.error(f"Error exporting contact to Mailchimp: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error exporting to Mailchimp: {str(e)}")
+
 @app.get("/api/dashboard/summary")
 async def get_dashboard_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get dashboard summary statistics"""
