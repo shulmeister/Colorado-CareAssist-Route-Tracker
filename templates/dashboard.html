@@ -1187,6 +1187,114 @@
             }
         }
 
+        // Add click handler for Save Contact button
+        appendBtn.addEventListener('click', async function() {
+            const buttonText = appendBtn.textContent;
+            
+            if (buttonText === 'Save Contact') {
+                try {
+                    // Get the contact data from the displayed results
+                    const contactCard = resultsContainer.querySelector('.contact-card');
+                    if (!contactCard) {
+                        throw new Error('No contact data found');
+                    }
+                    
+                    // Extract contact information from the displayed text
+                    const contactData = {
+                        name: `${contactCard.querySelector('p:nth-child(2)')?.textContent.replace('First Name:', '').trim() || ''} ${contactCard.querySelector('p:nth-child(3)')?.textContent.replace('Last Name:', '').trim() || ''}`.trim(),
+                        company: contactCard.querySelector('p:nth-child(5)')?.textContent.replace('Company:', '').trim() || '',
+                        email: contactCard.querySelector('p:nth-child(4)')?.textContent.replace('Email:', '').trim() || '',
+                        phone: '',
+                        website: '',
+                        address: '',
+                        notes: ''
+                    };
+                    
+                    // Send to save-contact API
+                    const response = await fetch('/api/save-contact', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(contactData)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        uploadStatus.className = 'upload-status success';
+                        uploadStatus.innerHTML = '✅ Contact saved successfully!';
+                        uploadStatus.style.display = 'block';
+                        appendBtn.style.display = 'none';
+                    } else {
+                        throw new Error(result.error || 'Failed to save contact');
+                    }
+                } catch (error) {
+                    console.error('Error saving contact:', error);
+                    uploadStatus.className = 'upload-status error';
+                    uploadStatus.innerHTML = `❌ Failed to save contact: ${error.message}`;
+                    uploadStatus.style.display = 'block';
+                }
+            } else if (buttonText === 'Save Visits') {
+                // Handle saving visits (existing functionality)
+                try {
+                    const response = await fetch('/api/save-visits', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ visits: currentVisits })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        uploadStatus.className = 'upload-status success';
+                        uploadStatus.innerHTML = `✅ Successfully saved ${result.count} visits!`;
+                        uploadStatus.style.display = 'block';
+                        appendBtn.style.display = 'none';
+                    } else {
+                        throw new Error(result.error || 'Failed to save visits');
+                    }
+                } catch (error) {
+                    console.error('Error saving visits:', error);
+                    uploadStatus.className = 'upload-status error';
+                    uploadStatus.innerHTML = `❌ Failed to save visits: ${error.message}`;
+                    uploadStatus.style.display = 'block';
+                }
+            } else if (buttonText === 'Update Hours') {
+                // Handle updating hours (existing functionality)
+                try {
+                    const response = await fetch('/api/save-time-entry', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ timeEntry: currentTimeEntry })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        uploadStatus.className = 'upload-status success';
+                        uploadStatus.innerHTML = '✅ Hours updated successfully!';
+                        uploadStatus.style.display = 'block';
+                        appendBtn.style.display = 'none';
+                    } else {
+                        throw new Error(result.error || 'Failed to update hours');
+                    }
+                } catch (error) {
+                    console.error('Error updating hours:', error);
+                    uploadStatus.className = 'upload-status error';
+                    uploadStatus.innerHTML = `❌ Failed to update hours: ${error.message}`;
+                    uploadStatus.style.display = 'block';
+                }
+            }
+        });
+
         // Tab switching functions
         function showDashboardTab() {
             hideAllTabs();
