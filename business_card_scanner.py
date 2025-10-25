@@ -12,16 +12,11 @@ register_heif_opener()
 logger = logging.getLogger(__name__)
 
 class BusinessCardScanner:
-    """Extract contact information from business card images"""
+    """Extract ONLY essential contact information: first name, last name, and email"""
     
     def __init__(self):
-        # Common patterns for extracting contact info
-        self.patterns = {
-            'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            'phone': r'(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})',
-            'website': r'(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?',
-            'address': r'\d+\s+[A-Za-z0-9\s,.-]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Place|Pl)',
-        }
+        # Focus ONLY on email pattern - this is the most reliable
+        self.email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     
     def scan_image(self, image_content: bytes) -> Dict[str, Any]:
         """Extract contact information from business card image"""
@@ -56,88 +51,139 @@ class BusinessCardScanner:
             }
     
     def _parse_contact_info(self, text: str) -> Dict[str, Any]:
-        """Parse contact information from OCR text"""
+        """Parse ONLY essential contact information: first name, last name, and email"""
         contact = {
-            "name": None,
-            "company": None,
+            "first_name": None,
+            "last_name": None,
+            "email": None,
+            "name": None,  # For backward compatibility
+            "company": None,  # Will be derived from email domain
             "title": None,
             "phone": None,
-            "email": None,
             "website": None,
             "address": None,
             "notes": text.strip()
         }
         
-        # Extract email
-        email_match = re.search(self.patterns['email'], text)
+        # STEP 1: Extract email (most reliable)
+        email_match = re.search(self.email_pattern, text)
         if email_match:
-            contact['email'] = email_match.group()
-        
-        # Extract phone
-        phone_match = re.search(self.patterns['phone'], text)
-        if phone_match:
-            contact['phone'] = phone_match.group()
-        
-        # Extract website
-        website_match = re.search(self.patterns['website'], text)
-        if website_match:
-            contact['website'] = website_match.group()
-        
-        # Extract address
-        address_match = re.search(self.patterns['address'], text)
-        if address_match:
-            contact['address'] = address_match.group()
-        
-        # Try to extract name and company from text lines
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        
-        if lines:
-            # First line is often the name
-            contact['name'] = lines[0]
+            contact['email'] = email_match.group().lower().strip()
             
-            # Look for company indicators
-            for line in lines[1:]:
-                if any(keyword in line.lower() for keyword in ['inc', 'llc', 'corp', 'company', 'hospital', 'medical', 'health', 'center', 'clinic']):
-                    contact['company'] = line
-                    break
-            
-            # Look for title indicators
-            for line in lines:
-                if any(keyword in line.lower() for keyword in ['manager', 'director', 'coordinator', 'specialist', 'nurse', 'doctor', 'md', 'rn']):
-                    contact['title'] = line
-                    break
+            # Extract company from email domain
+            email_parts = contact['email'].split('@')
+            if len(email_parts) == 2:
+                domain = email_parts[1].split('.')[0]  # Get domain without .com, .org, etc.
+                # Clean up common domain patterns
+                domain = domain.replace('-', ' ').replace('_', ' ')
+                contact['company'] = domain.title()
+        
+        # STEP 2: Extract name using multiple strategies
+        name = self._extract_name(text)
+        if name:
+            contact['name'] = name
+            # Try to split into first and last name
+            name_parts = name.split()
+            if len(name_parts) >= 2:
+                contact['first_name'] = name_parts[0].strip()
+                contact['last_name'] = ' '.join(name_parts[1:]).strip()
+            else:
+                contact['first_name'] = name.strip()
         
         return contact
     
+    def _extract_name(self, text: str) -> Optional[str]:
+        """Extract the most likely name from OCR text"""
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        if not lines:
+            return None
+        
+        # Strategy 1: First line that looks like a name (not email, not all caps, not too long)
+        for line in lines[:3]:  # Check first 3 lines
+            if self._looks_like_name(line):
+                return line
+        
+        # Strategy 2: Look for capitalized words that aren't email addresses
+        words = text.split()
+        name_candidates = []
+        
+        for word in words:
+            # Skip if it's an email, phone number, or common business words
+            if (re.search(self.email_pattern, word) or 
+                re.search(r'\d', word) or 
+                word.lower() in ['inc', 'llc', 'corp', 'company', 'hospital', 'medical', 'health', 'center', 'clinic', 'the', 'and', 'of', 'for']):
+                continue
+            
+            # If it's capitalized and looks like a name
+            if word[0].isupper() and len(word) > 1 and word.isalpha():
+                name_candidates.append(word)
+        
+        # If we found 2-3 name-like words, combine them
+        if 2 <= len(name_candidates) <= 3:
+            return ' '.join(name_candidates)
+        
+        return None
+    
+    def _looks_like_name(self, text: str) -> bool:
+        """Check if text looks like a person's name"""
+        # Skip if it's an email
+        if re.search(self.email_pattern, text):
+            return False
+        
+        # Skip if it contains numbers (likely phone or address)
+        if re.search(r'\d', text):
+            return False
+        
+        # Skip if it's too long (likely company name or address)
+        if len(text) > 30:
+            return False
+        
+        # Skip if it's all caps (likely company name)
+        if text.isupper():
+            return False
+        
+        # Skip common business words
+        business_words = ['inc', 'llc', 'corp', 'company', 'hospital', 'medical', 'health', 'center', 'clinic', 'manager', 'director', 'coordinator']
+        if any(word in text.lower() for word in business_words):
+            return False
+        
+        # Must have at least 2 words and start with capital letter
+        words = text.split()
+        if len(words) < 2:
+            return False
+        
+        # All words should start with capital letters
+        if not all(word[0].isupper() for word in words if word):
+            return False
+        
+        return True
+    
     def validate_contact(self, contact: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate and clean contact information"""
+        """Validate and clean ONLY essential contact information"""
         validated = contact.copy()
         
-        # Clean phone number
-        if validated.get('phone'):
-            # Remove all non-digit characters except +
-            phone = re.sub(r'[^\d+]', '', validated['phone'])
-            if len(phone) == 10:
-                validated['phone'] = f"({phone[:3]}) {phone[3:6]}-{phone[6:]}"
-            elif len(phone) == 11 and phone.startswith('1'):
-                validated['phone'] = f"({phone[1:4]}) {phone[4:7]}-{phone[7:]}"
-        
-        # Clean email
+        # Clean email (most important)
         if validated.get('email'):
             validated['email'] = validated['email'].lower().strip()
         
-        # Clean website
-        if validated.get('website'):
-            website = validated['website'].lower().strip()
-            if not website.startswith('http'):
-                website = f"https://{website}"
-            validated['website'] = website
+        # Clean names
+        if validated.get('first_name'):
+            validated['first_name'] = validated['first_name'].strip().title()
         
-        # Clean name and company
+        if validated.get('last_name'):
+            validated['last_name'] = validated['last_name'].strip().title()
+        
         if validated.get('name'):
             validated['name'] = validated['name'].strip().title()
         
+        # Clean company (derived from email domain)
         if validated.get('company'):
             validated['company'] = validated['company'].strip()
+        
+        # Set empty fields to None for cleaner Mailchimp export
+        for field in ['title', 'phone', 'website', 'address']:
+            if not validated.get(field):
+                validated[field] = None
         
         return validated

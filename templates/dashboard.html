@@ -1109,13 +1109,10 @@
                 resultsContainer.innerHTML = `
                     <div class="contact-card">
                         <h4>📇 Business Card Contact</h4>
-                        <p><strong>Name:</strong> ${contact.name || 'N/A'}</p>
-                        <p><strong>Company:</strong> ${contact.company || 'N/A'}</p>
-                        <p><strong>Title:</strong> ${contact.title || 'N/A'}</p>
-                        <p><strong>Phone:</strong> ${contact.phone || 'N/A'}</p>
+                        <p><strong>First Name:</strong> ${contact.first_name || 'N/A'}</p>
+                        <p><strong>Last Name:</strong> ${contact.last_name || 'N/A'}</p>
                         <p><strong>Email:</strong> ${contact.email || 'N/A'}</p>
-                        <p><strong>Website:</strong> ${contact.website || 'N/A'}</p>
-                        <p><strong>Address:</strong> ${contact.address || 'N/A'}</p>
+                        <p><strong>Company:</strong> ${contact.company || 'N/A'}</p>
                         ${mailchimpMessage}
                         <details style="margin-top: 12px;">
                             <summary style="cursor: pointer; color: #94a3b8;">Raw extracted text</summary>
