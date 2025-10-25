@@ -1726,6 +1726,12 @@
                 <h3 style="margin-bottom: 20px; color: #f1f5f9;">Edit Contact</h3>
                 <form id="editContactForm">
                     <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">Email Address</label>
+                        <input type="email" id="editEmail" value="${contact.email || ''}" readonly
+                               style="width: 100%; padding: 8px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; color: #94a3b8; cursor: not-allowed;">
+                        <small style="color: #64748b; font-size: 12px;">Email cannot be changed in Mailchimp</small>
+                    </div>
+                    <div style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 8px; color: #cbd5e1;">First Name</label>
                         <input type="text" id="editFirstName" value="${contact.first_name || ''}" 
                                style="width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #f1f5f9;">
