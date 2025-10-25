@@ -72,8 +72,8 @@ class MailchimpService:
                 "merge_fields": merge_fields
             }
             
-            # Add tags - always include "Business Card" for referral source segment
-            tags = ['Business Card']
+            # Add tags - always include "Referral Source" for referral source segment
+            tags = ['Referral Source']
             if contact_info.get('tags'):
                 if isinstance(contact_info['tags'], list):
                     tags.extend(contact_info['tags'])
@@ -170,15 +170,15 @@ class MailchimpService:
                 all_members = data.get('members', [])
                 logger.info(f"Total members returned: {len(all_members)}")
                 
-                # Filter members who have "Business Card" tag
+                # Filter members who have "Referral Source" tag
                 for member in all_members:
                     member_tags = member.get('tags', [])
                     logger.info(f"Member {member.get('email_address')} tags: {member_tags}")
                     
-                    # Check if member has "Business Card" tag
-                    has_business_card_tag = any(tag.get('name') == 'Business Card' for tag in member_tags)
+                    # Check if member has "Referral Source" tag
+                    has_referral_source_tag = any(tag.get('name') == 'Referral Source' for tag in member_tags)
                     
-                    if has_business_card_tag:
+                    if has_referral_source_tag:
                         contact = {
                             'mailchimp_id': member.get('id'),
                             'email': member.get('email_address'),
@@ -195,7 +195,7 @@ class MailchimpService:
                         contacts.append(contact)
                         logger.info(f"Added contact: {contact['email']}")
                 
-                logger.info(f"Found {len(contacts)} contacts with Business Card tag")
+                logger.info(f"Found {len(contacts)} contacts with Referral Source tag")
                 
                 return {
                     "success": True,
@@ -267,9 +267,14 @@ class MailchimpService:
                 "merge_fields": merge_fields
             }
             
-            # Add tags if available
+            # Add tags - always include "Referral Source" for referral source segment
+            tags = ['Referral Source']
             if contact_info.get('tags'):
-                data['tags'] = contact_info['tags']
+                if isinstance(contact_info['tags'], list):
+                    tags.extend(contact_info['tags'])
+                else:
+                    tags.append(contact_info['tags'])
+            data['tags'] = tags
             
             # Make API request
             url = f"{self.base_url}/lists/{self.list_id}/members/{mailchimp_id}"
