@@ -162,14 +162,14 @@
         }
 
         .dashboard-header {
-            margin-bottom: 32px;
+            margin-bottom: 20px;
         }
 
         .dashboard-title {
-            font-size: 32px;
-            font-weight: 800;
+            font-size: 24px;
+            font-weight: 700;
             color: #f1f5f9;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .dashboard-subtitle {
@@ -552,6 +552,31 @@
                 font-size: 28px;
             }
         }
+
+        .search-container {
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #64748b;
+        }
     </style>
 </head>
 <body>
@@ -575,6 +600,10 @@
                 <a href="#sales" class="nav-item" onclick="showSalesTab()">
                     <span class="nav-icon">💰</span>
                     Closed Sales
+                </a>
+                <a href="#contacts" class="nav-item" onclick="showContactsTab()">
+                    <span class="nav-icon">📇</span>
+                    Contacts
                 </a>
                 <a href="#reports" class="nav-item">
                     <span class="nav-icon">📈</span>
@@ -757,6 +786,9 @@
             </div>
 
                 <div class="table-container">
+                    <div class="search-container">
+                        <input type="text" id="visitsSearch" placeholder="Search visits by business name, address, or city..." class="search-input">
+                    </div>
                     <h3>All Visits</h3>
                     <table class="table">
                         <thead>
@@ -786,6 +818,9 @@
                 </div>
 
                 <div class="table-container">
+                    <div class="search-container">
+                        <input type="text" id="salesSearch" placeholder="Search sales by client name..." class="search-input">
+                    </div>
                     <h3>Sales Bonuses</h3>
                     <table class="table">
                         <thead>
@@ -801,6 +836,37 @@
                         <tbody id="salesList">
                             <tr>
                                 <td colspan="6" style="text-align: center; color: #94a3b8;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Contacts Tab Content -->
+            <div id="contactsTab" class="tab-content hidden">
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Business Card Contacts</h1>
+                    <p class="dashboard-subtitle">Saved contact information from business cards</p>
+                </div>
+
+                <div class="table-container">
+                    <div class="search-container">
+                        <input type="text" id="contactsSearch" placeholder="Search contacts by name, company, or email..." class="search-input">
+                    </div>
+                    <h3>Saved Contacts</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Company</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contactsList">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #94a3b8;">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1339,6 +1405,23 @@
             loadSalesData();
         }
 
+        function showContactsTab() {
+            console.log('showContactsTab called');
+            hideAllTabs();
+            // Hide the main dashboard
+            const dashboardTab = document.getElementById('dashboardTab');
+            dashboardTab.classList.add('hidden');
+            console.log('Dashboard hidden, classList:', dashboardTab.classList.toString());
+            
+            const contactsTab = document.getElementById('contactsTab');
+            console.log('contactsTab element:', contactsTab);
+            contactsTab.classList.remove('hidden');
+            console.log('contactsTab hidden class removed');
+            console.log('contactsTab classList:', contactsTab.classList.toString());
+            updateActiveNav('contacts');
+            loadContactsData();
+        }
+
         function hideAllTabs() {
             // Hide all tab content
             const tabContents = document.querySelectorAll('.tab-content');
@@ -1452,6 +1535,103 @@
             }
         }
 
+        // Load contacts data
+        async function loadContactsData() {
+            try {
+                console.log('Loading contacts data...');
+                const response = await fetch('/api/contacts', {
+                    credentials: 'include'
+                });
+                
+                console.log('Contacts response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const contacts = await response.json();
+                console.log('Contacts data received:', contacts.length, 'contacts');
+
+                const tbody = document.getElementById('contactsList');
+                console.log('Found contacts tbody:', tbody);
+                tbody.innerHTML = '';
+
+                contacts.forEach(contact => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${contact.name || 'N/A'}</td>
+                        <td>${contact.company || 'N/A'}</td>
+                        <td>${contact.email || 'N/A'}</td>
+                        <td>${contact.phone || 'N/A'}</td>
+                        <td>${contact.created_at ? new Date(contact.created_at).toLocaleDateString() : 'N/A'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                console.log('Added', contacts.length, 'rows to contacts table');
+            } catch (error) {
+                console.error('Error loading contacts:', error);
+                const tbody = document.getElementById('contactsList');
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading contacts data</td></tr>';
+            }
+        }
+
+        // Search functionality
+        function setupSearch() {
+            // Visits search
+            const visitsSearch = document.getElementById('visitsSearch');
+            if (visitsSearch) {
+                visitsSearch.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('#visitsList tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+
+            // Sales search
+            const salesSearch = document.getElementById('salesSearch');
+            if (salesSearch) {
+                salesSearch.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('#salesList tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+
+            // Contacts search
+            const contactsSearch = document.getElementById('contactsSearch');
+            if (contactsSearch) {
+                contactsSearch.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('#contactsList tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        if (text.includes(searchTerm)) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        }
+
         // Logout function
         async function logout() {
             try {
@@ -1475,6 +1655,7 @@
         // Initialize dashboard on load
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboardData();
+            setupSearch();
         });
     </script>
 </body>

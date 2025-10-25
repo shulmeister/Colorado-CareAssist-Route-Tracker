@@ -423,6 +423,16 @@ async def get_sales_bonuses(db: Session = Depends(get_db), current_user: Dict[st
         logger.error(f"Error getting sales bonuses: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/contacts")
+async def get_contacts(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Get all saved contacts"""
+    try:
+        contacts = db.query(Contact).order_by(Contact.created_at.desc()).all()
+        return JSONResponse([contact.to_dict() for contact in contacts])
+    except Exception as e:
+        logger.error(f"Error fetching contacts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/dashboard/weekly-summary")
 async def get_weekly_summary(db: Session = Depends(get_db), current_user: Dict[str, Any] = Depends(get_current_user)):
     """Get this week's summary"""
