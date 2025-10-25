@@ -577,6 +577,22 @@
         .search-input::placeholder {
             color: #64748b;
         }
+
+        .download-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #059669;
+        }
     </style>
 </head>
 <body>
@@ -786,9 +802,10 @@
             </div>
 
                 <div class="table-container">
-                    <div class="search-container">
-                        <input type="text" id="visitsSearch" placeholder="Search visits by business name, address, or city..." class="search-input">
-                    </div>
+                <div class="search-container">
+                    <input type="text" id="visitsSearch" placeholder="Search visits by business name, address, or city..." class="search-input">
+                    <button id="downloadVisitsCsv" class="download-btn">📥 Download CSV</button>
+                </div>
                     <h3>All Visits</h3>
                     <table class="table">
                         <thead>
@@ -1677,11 +1694,52 @@
             }
         }
 
-        // Initialize dashboard on load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDashboardData();
-            setupSearch();
-        });
+            // CSV Download functionality
+            function downloadVisitsCSV() {
+                if (!currentVisits || currentVisits.length === 0) {
+                    alert('No visits data available to download');
+                    return;
+                }
+
+                // Create CSV headers
+                const headers = ['Date', 'Business Name', 'Address', 'City', 'Notes', 'Stop Number'];
+                
+                // Create CSV content
+                const csvContent = [
+                    headers.join(','),
+                    ...currentVisits.map(visit => [
+                        visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '',
+                        `"${(visit.business_name || '').replace(/"/g, '""')}"`,
+                        `"${(visit.address || '').replace(/"/g, '""')}"`,
+                        `"${(visit.city || '').replace(/"/g, '""')}"`,
+                        `"${(visit.notes || '').replace(/"/g, '""')}"`,
+                        visit.stop_number || ''
+                    ].join(','))
+                ].join('\n');
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `visits_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            // Initialize dashboard on load
+            document.addEventListener('DOMContentLoaded', () => {
+                loadDashboardData();
+                setupSearch();
+                
+                // Add CSV download event listener
+                const downloadBtn = document.getElementById('downloadVisitsCsv');
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', downloadVisitsCSV);
+                }
+            });
     </script>
 </body>
 </html>
