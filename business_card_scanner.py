@@ -7,14 +7,7 @@ import tempfile
 from typing import Dict, Any, Optional
 import logging
 
-# Try to register HEIF opener for HEIC files
 logger = logging.getLogger(__name__)
-try:
-    from pillow_heif import register_heif_opener
-    register_heif_opener()
-    logger.info("Successfully registered HEIF opener")
-except ImportError as e:
-    logger.warning(f"pillow-heif not available: {e}")
 
 class BusinessCardScanner:
     """Extract ONLY essential contact information: first name, last name, and email"""
@@ -39,9 +32,18 @@ class BusinessCardScanner:
                 logger.info(f"Successfully opened image: {image.format}, mode: {image.mode}, size: {image.size}")
             except Exception as e:
                 logger.error(f"Failed to open image with PIL: {str(e)}")
-                # For HEIC files, write to temp file and read back (this works!)
+                # For HEIC files, register opener and try temp file approach
                 try:
                     logger.info("Attempting HEIC via temporary file")
+                    # Register HEIF opener
+                    try:
+                        from pillow_heif import register_heif_opener
+                        register_heif_opener()
+                        logger.info("Registered HEIF opener for HEIC files")
+                    except ImportError as ie:
+                        logger.error(f"Failed to import pillow_heif: {ie}")
+                        raise ie
+                    
                     image_buffer.seek(0)
                     
                     # Write bytes to temporary file
