@@ -1217,6 +1217,7 @@
                 console.log('Visits data received:', visits.length, 'visits');
 
                 const tbody = document.getElementById('visitsList');
+                console.log('Found visits tbody:', tbody);
                 tbody.innerHTML = '';
 
                 if (visits.length === 0) {
@@ -1224,7 +1225,8 @@
                     return;
                 }
 
-                visits.forEach(visit => {
+                visits.forEach((visit, index) => {
+                    if (index < 5) console.log('Processing visit', index, ':', visit);
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : 'N/A'}</td>
@@ -1236,6 +1238,7 @@
                     `;
                     tbody.appendChild(row);
                 });
+                console.log('Added', visits.length, 'rows to visits table');
             } catch (error) {
                 console.error('Error loading visits:', error);
                 const tbody = document.getElementById('visitsList');
@@ -1261,6 +1264,7 @@
                 console.log('Sales data received:', sales.length, 'sales');
 
                 const tbody = document.getElementById('salesList');
+                console.log('Found sales tbody:', tbody);
                 tbody.innerHTML = '';
 
                 if (sales.length === 0) {
@@ -1268,7 +1272,8 @@
                     return;
                 }
 
-                sales.forEach(sale => {
+                sales.forEach((sale, index) => {
+                    if (index < 3) console.log('Processing sale', index, ':', sale);
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${sale.client_name || 'N/A'}</td>
@@ -1280,6 +1285,7 @@
                     `;
                     tbody.appendChild(row);
                 });
+                console.log('Added', sales.length, 'rows to sales table');
             } catch (error) {
                 console.error('Error loading sales:', error);
                 const tbody = document.getElementById('salesList');
