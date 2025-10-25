@@ -61,7 +61,25 @@ class BusinessCardScanner:
                         
                 except Exception as heif_error:
                     logger.error(f"Failed to open HEIC via temp file: {str(heif_error)}")
-                    raise e
+                    # Try pyheif as fallback
+                    try:
+                        logger.info("Attempting pyheif as fallback")
+                        import pyheif
+                        image_buffer.seek(0)
+                        heif_file = pyheif.read_heif(image_buffer.getvalue())
+                        # Convert to PIL Image
+                        image = Image.frombytes(
+                            heif_file.mode,
+                            heif_file.size,
+                            heif_file.data,
+                            "raw",
+                            heif_file.stride,
+                            heif_file.orientation
+                        )
+                        logger.info(f"Successfully opened HEIC via pyheif: {image.mode}, size: {image.size}")
+                    except Exception as pyheif_error:
+                        logger.error(f"Failed to open HEIC via pyheif: {str(pyheif_error)}")
+                        raise e
             
             # Convert to RGB if necessary (handles HEIC, RGBA, etc.)
             if image.mode not in ['RGB', 'L']:
