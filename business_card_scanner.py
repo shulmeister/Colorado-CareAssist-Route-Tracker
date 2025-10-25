@@ -21,11 +21,12 @@ class BusinessCardScanner:
     def scan_image(self, image_content: bytes) -> Dict[str, Any]:
         """Extract contact information from business card image"""
         try:
-            # Open image
-            image = Image.open(io.BytesIO(image_content))
+            # Open image with explicit format handling
+            image_buffer = io.BytesIO(image_content)
+            image = Image.open(image_buffer)
             
-            # Convert to RGB if necessary
-            if image.mode != 'RGB':
+            # Convert to RGB if necessary (handles HEIC, RGBA, etc.)
+            if image.mode not in ['RGB', 'L']:
                 image = image.convert('RGB')
             
             # Extract text using OCR
