@@ -512,6 +512,35 @@ async def save_contact(request: Request, db: Session = Depends(get_db), current_
         logger.error(f"Error saving contact: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving contact: {str(e)}")
 
+@app.post("/api/fix-visit-data")
+async def fix_visit_data(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Fix visit data with enhanced business names"""
+    try:
+        # Import the fix script
+        import subprocess
+        import sys
+        
+        # Run the heroku data fix script
+        result = subprocess.run([sys.executable, "heroku_data_fix.py"], 
+                              capture_output=True, text=True, cwd=".")
+        
+        if result.returncode == 0:
+            return JSONResponse({
+                "success": True,
+                "message": "Visit data fixed successfully",
+                "output": result.stdout
+            })
+        else:
+            return JSONResponse({
+                "success": False,
+                "error": f"Script failed: {result.stderr}",
+                "output": result.stdout
+            })
+            
+    except Exception as e:
+        logger.error(f"Error fixing visit data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/migrate-data")
 async def migrate_data(current_user: Dict[str, Any] = Depends(get_current_user)):
     """Migrate data from Google Sheets to database"""
