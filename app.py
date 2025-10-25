@@ -864,6 +864,10 @@ async def fix_visit_data():
                         # Use current date if no valid date
                         visit_date = datetime.now()
                     
+                    # Skip rows with no stop number (they're likely summary rows)
+                    if stop_number is None:
+                        continue
+                    
                     # Create visit record
                     visit = Visit(
                         stop_number=stop_number,
@@ -1079,6 +1083,10 @@ async def migrate_data(current_user: Dict[str, Any] = Depends(get_current_user))
                     if not visit_date:
                         # Use current date if no valid date
                         visit_date = datetime.now()
+                    
+                    # Skip rows with no stop number (they're likely summary rows)
+                    if stop_number is None:
+                        continue
                     
                     # Create visit record
                     visit = Visit(
