@@ -4,7 +4,7 @@ import io
 import re
 from typing import Dict, Any, Optional
 import logging
-from pillow_heif import register_heif_opener
+from pillow_heif import register_heif_opener, HeifImage
 
 # Register HEIF opener for HEIC files
 register_heif_opener()
@@ -33,10 +33,17 @@ class BusinessCardScanner:
                 image = Image.open(image_buffer)
                 logger.info(f"Successfully opened image: {image.format}, mode: {image.mode}, size: {image.size}")
             except Exception as e:
-                logger.error(f"Failed to open image: {str(e)}")
-                # Try to reset buffer and open again
-                image_buffer.seek(0)
-                image = Image.open(image_buffer)
+                logger.error(f"Failed to open image with PIL: {str(e)}")
+                # Try HEIF directly for HEIC files
+                try:
+                    logger.info("Attempting to open as HEIF image")
+                    image_buffer.seek(0)
+                    heif_image = HeifImage(image_buffer)
+                    image = heif_image.to_pillow()
+                    logger.info(f"Successfully opened HEIF image: {image.mode}, size: {image.size}")
+                except Exception as heif_error:
+                    logger.error(f"Failed to open as HEIF: {str(heif_error)}")
+                    raise e
             
             # Convert to RGB if necessary (handles HEIC, RGBA, etc.)
             if image.mode not in ['RGB', 'L']:
