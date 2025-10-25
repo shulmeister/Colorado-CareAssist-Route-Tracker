@@ -47,16 +47,8 @@ class BusinessCardScanner:
                         temp_file_path = temp_file.name
                     
                     try:
-                        # Open HEIF image using file path
-                        heif_image = HeifImage.open(temp_file_path)
-                        image = Image.frombytes(
-                            heif_image.mode, 
-                            heif_image.size, 
-                            heif_image.data,
-                            "raw",
-                            heif_image.mode,
-                            heif_image.stride,
-                        )
+                        # Open HEIF image using PIL with registered opener
+                        image = Image.open(temp_file_path)
                         logger.info(f"Successfully opened HEIF image: {image.mode}, size: {image.size}")
                     finally:
                         # Clean up temporary file
