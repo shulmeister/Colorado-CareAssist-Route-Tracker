@@ -1213,6 +1213,7 @@
                 console.log('Visits data received:', visits.length, 'visits');
 
                 const tbody = document.getElementById('visitsList');
+                console.log('Found tbody element:', tbody);
                 tbody.innerHTML = '';
 
                 if (visits.length === 0) {
@@ -1221,6 +1222,7 @@
                 }
 
                 visits.forEach(visit => {
+                    console.log('Processing visit:', visit);
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : 'N/A'}</td>
@@ -1232,6 +1234,7 @@
                     `;
                     tbody.appendChild(row);
                 });
+                console.log('Added', visits.length, 'rows to visits table');
             } catch (error) {
                 console.error('Error loading visits:', error);
                 const tbody = document.getElementById('visitsList');
@@ -1257,6 +1260,7 @@
                 console.log('Sales data received:', sales.length, 'sales');
 
                 const tbody = document.getElementById('salesList');
+                console.log('Found sales tbody element:', tbody);
                 tbody.innerHTML = '';
 
                 if (sales.length === 0) {
@@ -1265,6 +1269,7 @@
                 }
 
                 sales.forEach(sale => {
+                    console.log('Processing sale:', sale);
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${sale.client_name || 'N/A'}</td>
@@ -1276,6 +1281,7 @@
                     `;
                     tbody.appendChild(row);
                 });
+                console.log('Added', sales.length, 'rows to sales table');
             } catch (error) {
                 console.error('Error loading sales:', error);
                 const tbody = document.getElementById('salesList');
