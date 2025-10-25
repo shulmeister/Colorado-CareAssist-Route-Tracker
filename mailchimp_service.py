@@ -73,6 +73,8 @@ class MailchimpService:
                 }
             elif response.status_code == 400:
                 error_data = response.json()
+                logger.error(f"Mailchimp 400 error details: {error_data}")
+                
                 if error_data.get('title') == 'Member Exists':
                     return {
                         "success": True,
@@ -80,9 +82,15 @@ class MailchimpService:
                         "mailchimp_id": error_data.get('detail', '')
                     }
                 else:
+                    # Get more specific error details
+                    error_detail = error_data.get('detail', 'Unknown error')
+                    errors = error_data.get('errors', [])
+                    if errors:
+                        error_detail += f" Errors: {errors}"
+                    
                     return {
                         "success": False,
-                        "error": f"Mailchimp error: {error_data.get('detail', 'Unknown error')}"
+                        "error": f"Mailchimp error: {error_detail}"
                     }
             else:
                 return {
