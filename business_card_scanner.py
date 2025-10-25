@@ -89,7 +89,10 @@ class BusinessCardScanner:
                 image = image.convert('RGB')
             
             # Extract text using OCR
+            logger.info("Running Tesseract OCR...")
             text = pytesseract.image_to_string(image)
+            logger.info(f"OCR extracted text length: {len(text)} characters")
+            logger.info(f"First 500 chars of OCR text: {text[:500]}")
             
             # Parse contact information
             contact_info = self._parse_contact_info(text)
