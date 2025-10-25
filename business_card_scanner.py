@@ -21,6 +21,10 @@ class BusinessCardScanner:
     def scan_image(self, image_content: bytes) -> Dict[str, Any]:
         """Extract contact information from business card image"""
         try:
+            # Debug: Log the content info
+            logger.info(f"Image content length: {len(image_content)} bytes")
+            logger.info(f"First 20 bytes: {image_content[:20]}")
+            
             # Open image with explicit format handling
             image_buffer = io.BytesIO(image_content)
             

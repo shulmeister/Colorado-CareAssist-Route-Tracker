@@ -186,6 +186,8 @@ async def upload_file(file: UploadFile = File(...), current_user: Dict[str, Any]
         else:
             # Handle business card image (including HEIC)
             logger.info(f"Processing business card image: {file.filename}")
+            logger.info(f"File content length: {len(content)} bytes")
+            logger.info(f"File extension: {file_extension}")
             try:
                 result = business_card_scanner.scan_image(content)
                 
