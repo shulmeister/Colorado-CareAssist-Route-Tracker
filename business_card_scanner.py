@@ -23,6 +23,12 @@ class BusinessCardScanner:
             logger.info(f"Image content length: {len(image_content)} bytes")
             logger.info(f"First 20 bytes: {image_content[:20]}")
             
+            # Detect actual file format from magic bytes
+            is_heic = image_content[:12] == b'\x00\x00\x004ftypheic' or image_content[:12] == b'\x00\x00\x00 ftyp'
+            if is_heic:
+                logger.warning("File appears to be HEIC format despite extension")
+                raise Exception("Unable to process HEIC file. Please convert the image to JPEG or PNG format and try again.")
+            
             # Open image with explicit format handling
             image_buffer = io.BytesIO(image_content)
             
