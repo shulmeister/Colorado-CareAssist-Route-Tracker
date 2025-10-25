@@ -39,28 +39,26 @@ class BusinessCardScanner:
                 logger.info(f"Successfully opened image: {image.format}, mode: {image.mode}, size: {image.size}")
             except Exception as e:
                 logger.error(f"Failed to open image with PIL: {str(e)}")
-                # Try HEIF directly for HEIC files
+                # For HEIC files, write to temp file and read back (this works!)
                 try:
-                    logger.info("Attempting to decode as HEIF image")
-                    from pillow_heif import HeifImageFile
-                    
-                    # Seek back to start of buffer
+                    logger.info("Attempting HEIC via temporary file")
                     image_buffer.seek(0)
                     
-                    # Open HEIF image directly from bytes
-                    heif_image = HeifImageFile(image_buffer)
+                    # Write bytes to temporary file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.heic') as temp_file:
+                        temp_file.write(image_buffer.getvalue())
+                        temp_file_path = temp_file.name
                     
-                    # Convert to PIL Image
-                    image = Image.frombytes(
-                        heif_image.mode, 
-                        heif_image.size, 
-                        heif_image.data,
-                        "raw"
-                    )
-                    logger.info(f"Successfully decoded HEIF image: {image.mode}, size: {image.size}")
+                    try:
+                        # Now PIL can open it with registered opener
+                        image = Image.open(temp_file_path)
+                        logger.info(f"Successfully opened HEIC via temp file: {image.mode}, size: {image.size}")
+                    finally:
+                        # Clean up temp file
+                        os.unlink(temp_file_path)
                         
                 except Exception as heif_error:
-                    logger.error(f"Failed to decode as HEIF: {str(heif_error)}")
+                    logger.error(f"Failed to open HEIC via temp file: {str(heif_error)}")
                     raise e
             
             # Convert to RGB if necessary (handles HEIC, RGBA, etc.)
