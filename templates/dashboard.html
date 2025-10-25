@@ -1171,6 +1171,11 @@
             console.log('visitsTab element:', visitsTab);
             visitsTab.style.display = 'block';
             console.log('visitsTab display set to block');
+            // Force the display to stay visible
+            setTimeout(() => {
+                visitsTab.style.display = 'block';
+                console.log('visitsTab display forced to block after timeout');
+            }, 100);
             updateActiveNav('visits');
             loadVisitsData();
         }
@@ -1182,6 +1187,11 @@
             console.log('salesTab element:', salesTab);
             salesTab.style.display = 'block';
             console.log('salesTab display set to block');
+            // Force the display to stay visible
+            setTimeout(() => {
+                salesTab.style.display = 'block';
+                console.log('salesTab display forced to block after timeout');
+            }, 100);
             updateActiveNav('sales');
             loadSalesData();
         }
