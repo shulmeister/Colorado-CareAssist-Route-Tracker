@@ -49,17 +49,20 @@ class MailchimpService:
                 merge_fields['COMPANY'] = contact_info['company']
             
             # Only add phone if it's a valid format
-            phone = contact_info.get('phone', '').strip()
+            phone = contact_info.get('phone') or ''
+            phone = phone.strip() if phone else ''
             if phone and len(phone) >= 10:
                 merge_fields['PHONE'] = phone
             
             # Only add address if it's substantial
-            address = contact_info.get('address', '').strip()
+            address = contact_info.get('address') or ''
+            address = address.strip() if address else ''
             if address and len(address) > 10:
                 merge_fields['ADDRESS'] = address
             
             # Only add website if it looks like a URL
-            website = contact_info.get('website', '').strip()
+            website = contact_info.get('website') or ''
+            website = website.strip() if website else ''
             if website and ('.' in website and len(website) > 5):
                 merge_fields['WEBSITE'] = website
             
