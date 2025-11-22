@@ -17,8 +17,8 @@ from analytics import AnalyticsEngine
 from migrate_data import GoogleSheetsMigrator
 from business_card_scanner import BusinessCardScanner
 from mailchimp_service import MailchimpService
-from auth import oauth_manager, get_current_user, get_current_user_optional
-from itsdangerous import BadSignature, SignatureExpired
+from auth import oauth_manager, get_current_user, get_current_user_optional, PORTAL_SECRET
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -221,6 +221,9 @@ app.add_middleware(
     ]
 )
 
+PORTAL_SSO_SERIALIZER = URLSafeTimedSerializer(PORTAL_SECRET)
+PORTAL_SSO_TOKEN_TTL = int(os.getenv("PORTAL_SSO_TOKEN_TTL", "300"))
+
 # Mount static files and templates
 templates = Jinja2Templates(directory="templates")
 
@@ -300,10 +303,8 @@ async def portal_auth_sso(
         logger.warning("Portal SSO attempted without portal_token")
         return RedirectResponse(url=f"{login_fallback}?reason=missing_token", status_code=302)
 
-    token_ttl = int(os.getenv("PORTAL_SSO_TOKEN_TTL", "300"))
-
     try:
-        portal_session = oauth_manager.serializer.loads(portal_token, max_age=token_ttl)
+        portal_session = PORTAL_SSO_SERIALIZER.loads(portal_token, max_age=PORTAL_SSO_TOKEN_TTL)
     except SignatureExpired:
         logger.warning("Portal SSO token expired")
         return RedirectResponse(url=f"{login_fallback}?reason=token_expired", status_code=302)
