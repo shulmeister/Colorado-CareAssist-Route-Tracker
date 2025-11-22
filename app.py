@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, status
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Depends, status, Query
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -18,6 +18,7 @@ from migrate_data import GoogleSheetsMigrator
 from business_card_scanner import BusinessCardScanner
 from mailchimp_service import MailchimpService
 from auth import oauth_manager, get_current_user, get_current_user_optional
+from itsdangerous import BadSignature, SignatureExpired
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -196,7 +197,13 @@ app = FastAPI(title="Colorado CareAssist Sales Dashboard", version="2.0.0")
 # Add security middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8000", "https://tracker.coloradocareassist.com"],  # Production domain
+    allow_origins=[
+        "http://localhost:8000",
+        "https://tracker.coloradocareassist.com",
+        "https://cca-activity-tracker-6d9a1d8e3933.herokuapp.com",
+        "https://portal.coloradocareassist.com",
+        "https://portal-coloradocareassist-3e1a4bb34793.herokuapp.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -205,7 +212,13 @@ app.add_middleware(
 # Add trusted host middleware
 app.add_middleware(
     TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "*.herokuapp.com", "tracker.coloradocareassist.com"]  # Production domain
+    allowed_hosts=[
+        "localhost",
+        "127.0.0.1",
+        "*.herokuapp.com",
+        "tracker.coloradocareassist.com",
+        "portal.coloradocareassist.com"
+    ]
 )
 
 # Mount static files and templates
@@ -273,6 +286,66 @@ async def logout(request: Request):
     
     response = JSONResponse({"success": True, "message": "Logged out successfully"})
     response.delete_cookie("session_token")
+    return response
+
+
+@app.get("/portal-auth")
+async def portal_auth_sso(
+    portal_token: Optional[str] = Query(None),
+    portal_user_email: Optional[str] = Query(None)
+):
+    """Allow the portal to hand off an SSO token and start a session."""
+    login_fallback = "/auth/login"
+    if not portal_token:
+        logger.warning("Portal SSO attempted without portal_token")
+        return RedirectResponse(url=f"{login_fallback}?reason=missing_token", status_code=302)
+
+    token_ttl = int(os.getenv("PORTAL_SSO_TOKEN_TTL", "300"))
+
+    try:
+        portal_session = oauth_manager.serializer.loads(portal_token, max_age=token_ttl)
+    except SignatureExpired:
+        logger.warning("Portal SSO token expired")
+        return RedirectResponse(url=f"{login_fallback}?reason=token_expired", status_code=302)
+    except BadSignature:
+        logger.warning("Portal SSO token invalid signature")
+        return RedirectResponse(url=f"{login_fallback}?reason=token_invalid", status_code=302)
+    except Exception as exc:
+        logger.error(f"Portal SSO token error: {exc}")
+        return RedirectResponse(url=f"{login_fallback}?reason=token_error", status_code=302)
+
+    email = portal_session.get("email") or portal_user_email
+    if not email:
+        logger.warning("Portal SSO token missing email")
+        return RedirectResponse(url=f"{login_fallback}?reason=no_email", status_code=302)
+
+    name = portal_session.get("name") or portal_user_email or "Portal User"
+    domain = email.split("@")[-1] if "@" in email else ""
+    user_id = portal_session.get("user_id") or email
+
+    session_payload = {
+        "user_id": user_id,
+        "email": email,
+        "name": name,
+        "domain": domain,
+        "via_portal": True,
+        "portal_login_time": portal_session.get("login_time"),
+        "sso_issued_at": datetime.utcnow().isoformat()
+    }
+
+    session_token = oauth_manager.serializer.dumps(session_payload)
+
+    response = RedirectResponse(url="/", status_code=302)
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        max_age=3600 * 24,
+        httponly=True,
+        secure=True,
+        samesite="lax"
+    )
+
+    logger.info(f"Portal SSO success for {email}")
     return response
 
 @app.get("/auth/me")

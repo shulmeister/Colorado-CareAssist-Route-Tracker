@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 # Security scheme for API documentation
 security = HTTPBearer(auto_error=False)
 
+PORTAL_SECRET = os.getenv("PORTAL_SECRET", "colorado-careassist-portal-2025")
+
 class GoogleOAuthManager:
     """Manage Google OAuth authentication for Colorado CareAssist"""
     
@@ -179,6 +181,15 @@ async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Dict[str, Any]:
     """Dependency to get current authenticated user"""
+    portal_secret = request.headers.get("X-Portal-Secret")
+    if portal_secret and portal_secret == PORTAL_SECRET:
+        portal_email = request.headers.get("X-Portal-User-Email", "portal-user@coloradocareassist.com")
+        return {
+            "email": portal_email,
+            "name": request.headers.get("X-Portal-User-Name", "Portal User"),
+            "domain": portal_email.split("@")[-1] if "@" in portal_email else "",
+            "via_portal": True
+        }
     
     # Check for session token in Authorization header
     if credentials and credentials.scheme == "Bearer":
